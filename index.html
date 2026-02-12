@@ -3,297 +3,290 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>YT Audit Pro | AI Video Metadata Analysis</title>
+    <title>YT Audit Pro | AI Growth Platform</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap');
         body { font-family: 'Plus Jakarta Sans', sans-serif; }
-        .glass-card {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(229, 231, 235, 1);
-        }
-        .hero-gradient {
-            background: radial-gradient(circle at top right, #fef2f2, transparent);
-        }
-        .section-step {
-            @apply flex items-center space-x-3 mb-6;
-        }
-        .step-number {
-            @apply w-8 h-8 rounded-full bg-red-600 text-white flex items-center justify-center font-bold text-sm shadow-lg shadow-red-100;
-        }
-        /* Custom scrollbar for keywords */
+        .hero-gradient { background: radial-gradient(circle at top right, #fef2f2, transparent); }
+        .glass { background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(12px); border: 1px solid rgba(0,0,0,0.05); }
+        
         textarea::-webkit-scrollbar { width: 8px; }
         textarea::-webkit-scrollbar-track { background: #1f2937; }
         textarea::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 4px; }
     </style>
-</head>
-<body class="bg-[#fafafa] min-h-screen text-gray-900 hero-gradient">
 
-    <!-- Header -->
-    <header class="py-6 mb-4">
-        <div class="max-w-5xl mx-auto px-4 flex justify-between items-center">
-            <div class="flex items-center space-x-3">
-                <div class="bg-red-600 p-2.5 rounded-xl shadow-lg shadow-red-200">
-                    <i class="fa-solid fa-magnifying-glass-chart text-white text-xl"></i>
-                </div>
-                <h1 class="text-2xl font-extrabold tracking-tight text-gray-900">YT Audit<span class="text-red-600">Pro</span></h1>
-            </div>
-        </div>
-    </header>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail, onAuthStateChanged, signOut, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, updateDoc, increment, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-    <main class="max-w-5xl mx-auto px-4 pb-20">
-        
-        <!-- Hero Section -->
-        <section class="text-center mb-12">
-            <h2 class="text-5xl md:text-6xl font-extrabold text-gray-900 mb-6 tracking-tight leading-tight">
-                Audit your videos <br/>
-                <span class="text-transparent bg-clip-text bg-gradient-to-r from-red-600 to-orange-500">with AI Insights</span>
-            </h2>
-            <p class="text-gray-500 text-lg max-w-2xl mx-auto">
-                Get a deep-dive analysis of your metadata, thumbnail performance, and SEO optimizations in seconds.
-            </p>
-        </section>
-
-        <!-- Search Section -->
-        <section class="glass-card rounded-[2.5rem] p-2 shadow-2xl shadow-gray-200/50 mb-12 border-gray-100">
-            <div class="flex flex-col md:flex-row gap-2">
-                <div class="relative flex-grow">
-                    <div class="absolute inset-y-0 left-6 flex items-center pointer-events-none">
-                        <i class="fa-brands fa-youtube text-red-600 text-xl"></i>
-                    </div>
-                    <input type="text" id="video-url" placeholder="Paste your YouTube video link here..." 
-                           class="block w-full pl-14 pr-6 py-6 bg-white border-none rounded-[1.8rem] focus:ring-2 focus:ring-red-500 outline-none text-lg font-medium placeholder:text-gray-400">
-                </div>
-                <button onclick="performAudit()" id="audit-btn" class="bg-red-600 hover:bg-red-700 text-white font-bold py-6 px-10 rounded-[1.8rem] transition-all flex items-center justify-center space-x-3 shadow-xl shadow-red-100 active:scale-95 group border-none outline-none">
-                    <span class="text-lg">Analyze Video</span>
-                    <i class="fa-solid fa-arrow-right group-hover:translate-x-1 transition-transform"></i>
-                </button>
-            </div>
-            <div id="error-msg" class="hidden mx-4 my-4 p-4 bg-red-50 text-red-700 rounded-2xl text-sm border border-red-100 font-semibold text-center"></div>
-        </section>
-
-        <!-- Loading State -->
-        <div id="loading" class="hidden py-20 text-center">
-            <div class="relative inline-block mb-6">
-                <div class="rounded-full h-16 w-16 border-4 border-red-100 border-t-red-600 animate-spin"></div>
-            </div>
-            <p class="text-gray-900 font-bold text-xl mb-1">Deep-Scanning Video...</p>
-            <p class="text-gray-400 text-sm italic">Analyzing visuals and crafting growth strategies</p>
-        </div>
-
-        <!-- Results Area -->
-        <div id="results-area" class="hidden space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
-            
-            <!-- Overall Scores -->
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-4" id="scores-grid"></div>
-
-            <!-- 1. Title Clinic -->
-            <section class="glass-card rounded-[2rem] p-8 shadow-xl border-gray-100">
-                <div class="section-step">
-                    <div class="step-number">1</div>
-                    <h3 class="text-2xl font-extrabold text-gray-900">Title Clinic</h3>
-                </div>
-                
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    <div class="bg-gray-50 p-6 rounded-2xl border border-gray-100">
-                        <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Current Title</p>
-                        <h4 id="current-title-display" class="text-lg font-bold text-gray-800 leading-snug"></h4>
-                        <div id="title-status-badge" class="mt-4"></div>
-                    </div>
-                    <div>
-                        <p class="text-[10px] font-black text-blue-500 uppercase tracking-widest mb-3">AI Optimized Alternatives</p>
-                        <div class="space-y-3" id="title-suggestions-list"></div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- 2. Analyze the Thumbnail -->
-            <section class="glass-card rounded-[2rem] p-8 shadow-xl border-gray-100">
-                <div class="section-step">
-                    <div class="step-number">2</div>
-                    <h3 class="text-2xl font-extrabold text-gray-900">Analyze the Thumbnail</h3>
-                </div>
-                
-                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-                    <div class="relative lg:col-span-1">
-                        <img id="vid-thumb-preview" src="" alt="Thumbnail" class="w-full rounded-2xl shadow-lg ring-1 ring-gray-100">
-                        <div class="absolute -bottom-4 -right-4 bg-white p-3 rounded-xl shadow-lg border border-gray-100 text-center min-w-[100px]">
-                            <p class="text-[9px] font-bold text-gray-400 uppercase mb-1">Visual Score</p>
-                            <p id="thumb-score-mini" class="text-xl font-black text-red-600"></p>
-                        </div>
-                    </div>
-                    <div class="lg:col-span-1">
-                        <p class="text-[10px] font-black text-purple-500 uppercase tracking-widest mb-4">Fix Current Design</p>
-                        <div id="thumb-suggestions-list" class="space-y-4"></div>
-                    </div>
-                    <div class="lg:col-span-1">
-                        <p class="text-[10px] font-black text-orange-500 uppercase tracking-widest mb-4">New Visual Concepts</p>
-                        <div id="thumb-concepts-list" class="space-y-4"></div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- 3. Hashtag Lab -->
-            <section class="glass-card rounded-[2rem] p-8 shadow-xl border-gray-100">
-                <div class="section-step">
-                    <div class="step-number">3</div>
-                    <h3 class="text-2xl font-extrabold text-gray-900">Hashtag Lab</h3>
-                </div>
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    <div>
-                        <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">Currently Used</p>
-                        <div id="original-tags" class="flex flex-wrap gap-2"></div>
-                    </div>
-                    <div>
-                        <p class="text-[10px] font-black text-red-500 uppercase tracking-widest mb-4">Suggested Viral Hashtags</p>
-                        <div id="suggested-hashtags" class="flex flex-wrap gap-2"></div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- 4. Keyword Lab -->
-            <section class="glass-card rounded-[2rem] p-8 shadow-xl border-none bg-gray-900 text-white overflow-hidden">
-                <div class="flex items-center space-x-3 mb-4">
-                    <div class="w-8 h-8 rounded-full bg-red-600 text-white flex items-center justify-center font-bold text-sm">4</div>
-                    <h3 class="text-2xl font-extrabold text-white">Keyword Lab</h3>
-                </div>
-                <p class="text-gray-400 text-sm mb-6">New SEO tags optimized for YouTube Search. Copy and paste these into your video tags.</p>
-                <div class="relative">
-                    <textarea id="copy-keywords-area" readonly 
-                              class="w-full bg-gray-800/50 border border-gray-700 rounded-xl p-6 text-gray-300 font-mono text-sm leading-relaxed resize-none h-32 focus:ring-1 focus:ring-red-500 outline-none"></textarea>
-                    <button onclick="copyKeywords()" class="absolute top-4 right-4 bg-red-600 hover:bg-red-500 text-white px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 shadow-lg">
-                        <i class="fa-solid fa-copy"></i> Copy All
-                    </button>
-                </div>
-            </section>
-
-            <!-- 5. Grow Your Video -->
-            <section class="glass-card rounded-[2rem] p-8 shadow-xl border-gray-100 bg-gradient-to-br from-white to-green-50/40">
-                <div class="section-step">
-                    <div class="step-number">5</div>
-                    <h3 class="text-2xl font-extrabold text-gray-900">Grow Your Video</h3>
-                </div>
-                <p class="text-gray-600 mb-8 text-lg font-semibold px-1">Follow this instructions to grow your video more and get more views</p>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6" id="bilingual-checklist">
-                    <!-- Suggestions rendered here -->
-                </div>
-            </section>
-        </div>
-    </main>
-
-    <script>
-        // API CONFIGURATION
+        // --- CONFIGURATION ---
         const YT_API_KEY = "AIzaSyCm4_V3xrOVzXwPAqmO4pS8NR9ENVkdzK4"; 
         const AI_API_KEY = "AIzaSyAAitSgoxy7G6uAO9XXRy3BR4UFa8lCbng"; 
+        
+        const firebaseConfig = {
+            apiKey: "AIzaSyAglNxobkU7c8ng1kG6WhxkdpZBTFkYBiI",
+            authDomain: "yt-audit-pro-8b4c2.firebaseapp.com",
+            projectId: "yt-audit-pro-8b4c2",
+            storageBucket: "yt-audit-pro-8b4c2.firebasestorage.app",
+            messagingSenderId: "983448409665",
+            appId: "1:983448409665:web:243f06b1d37e49164758c0",
+            measurementId: "G-V7VX3TWKGJ"
+        };
 
-        async function fetchWithRetry(url, options, retries = 3) {
-            const response = await fetch(url, options);
-            if (!response.ok && retries > 0) return fetchWithRetry(url, options, retries - 1);
-            return response;
+        // --- UI HELPERS ---
+        window.toggleAuthModal = (show) => {
+            const modal = document.getElementById('auth-modal');
+            if (modal) modal.classList.toggle('hidden', !show);
+        };
+        
+        window.togglePaywall = (show) => {
+            const modal = document.getElementById('paywall-modal');
+            if (modal) modal.classList.toggle('hidden', !show);
+        };
+
+        window.copyKeywords = () => {
+            const area = document.getElementById('copy-keywords-area');
+            if (area) {
+                area.select();
+                document.execCommand('copy');
+                alert("Keywords copied to clipboard!");
+            }
+        };
+
+        function showLoading(s) { 
+            const loader = document.getElementById('loading');
+            const results = document.getElementById('results-area');
+            if (loader) loader.classList.toggle('hidden', !s); 
+            if (s && results) results.classList.add('hidden'); 
         }
 
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // Global State
+        let currentUser = null;
+        let userData = null;
+
+        // --- AUTH LOGIC ---
+        window.handleGoogleLogin = async () => {
+            const provider = new GoogleAuthProvider();
+            // Optional: forces the account picker to show up
+            provider.setCustomParameters({ prompt: 'select_account' });
+            
+            try {
+                const result = await signInWithPopup(auth, provider);
+                const user = result.user;
+                
+                const userDoc = await getDoc(doc(db, "users", user.uid));
+                if (!userDoc.exists()) {
+                    await setDoc(doc(db, "users", user.uid), {
+                        email: user.email,
+                        credits: 2,
+                        plan: 'Free',
+                        createdAt: new Date()
+                    });
+                }
+                window.toggleAuthModal(false);
+            } catch (err) {
+                console.error("Google Auth Error:", err);
+                if (err.code === 'auth/unauthorized-domain') {
+                    alert("This domain is not authorized in Firebase. Please add " + window.location.hostname + " to 'Authorized Domains' in your Firebase Console.");
+                } else if (err.code === 'auth/popup-closed-by-user') {
+                    // Do nothing, user just closed it
+                } else {
+                    alert("Sign-In Error: " + err.message);
+                }
+            }
+        };
+
+        window.handleAuth = async (type) => {
+            const email = document.getElementById('auth-email').value;
+            const password = document.getElementById('auth-password').value;
+            const errorEl = document.getElementById('auth-error');
+
+            if (!email || !password) {
+                errorEl.innerText = "Please enter email and password.";
+                errorEl.classList.remove('hidden');
+                return;
+            }
+
+            try {
+                if (type === 'signup') {
+                    const res = await createUserWithEmailAndPassword(auth, email, password);
+                    await setDoc(doc(db, "users", res.user.uid), {
+                        email: email,
+                        credits: 2,
+                        plan: 'Free',
+                        createdAt: new Date()
+                    });
+                } else if (type === 'login') {
+                    await signInWithEmailAndPassword(auth, email, password);
+                } else if (type === 'reset') {
+                    await sendPasswordResetEmail(auth, email);
+                    alert("Password reset email sent!");
+                }
+                window.toggleAuthModal(false);
+            } catch (err) {
+                errorEl.innerText = err.message;
+                errorEl.classList.remove('hidden');
+            }
+        };
+
+        window.logout = () => signOut(auth);
+
+        onAuthStateChanged(auth, async (user) => {
+            currentUser = user;
+            const authBtn = document.getElementById('auth-trigger-btn');
+            const userBar = document.getElementById('user-status-bar');
+            
+            if (user) {
+                if (authBtn) authBtn.classList.add('hidden');
+                if (userBar) userBar.classList.remove('hidden');
+                document.getElementById('user-email-display').innerText = user.email;
+                
+                onSnapshot(doc(db, "users", user.uid), (snapshot) => {
+                    if (snapshot.exists()) {
+                        userData = snapshot.data();
+                        document.getElementById('credit-count').innerText = userData.plan === 'Pro' ? '∞' : (userData.credits || 0);
+                        document.getElementById('plan-badge').innerText = userData.plan || 'Free';
+                    } else {
+                        // Ensure doc exists for Google users
+                        setDoc(doc(db, "users", user.uid), { email: user.email, credits: 2, plan: 'Free', createdAt: new Date() });
+                    }
+                }, (err) => {
+                    console.error("Firestore access error:", err);
+                });
+            } else {
+                if (authBtn) authBtn.classList.remove('hidden');
+                if (userBar) userBar.classList.add('hidden');
+                userData = null;
+            }
+        });
+
+        // --- AUDIT LOGIC ---
+        window.performAudit = async () => {
+            if (!currentUser) {
+                window.toggleAuthModal(true);
+                return;
+            }
+
+            if (!userData) {
+                alert("Please wait for your profile to load...");
+                return;
+            }
+
+            if (userData.plan !== 'Pro' && (userData.credits === undefined || userData.credits <= 0)) {
+                window.togglePaywall(true);
+                return;
+            }
+
+            const urlInput = document.getElementById('video-url').value;
+            const videoId = extractVideoId(urlInput);
+            if (!videoId) return alert("Please enter a valid YouTube URL");
+
+            showLoading(true);
+            try {
+                const metaRes = await fetch(`https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails&id=${videoId}&key=${YT_API_KEY}`);
+                const meta = await metaRes.json();
+                
+                if (meta.error) throw new Error(meta.error.message);
+                if (!meta.items?.length) throw new Error("Video not found.");
+
+                const auditData = {
+                    title: meta.items[0].snippet.title,
+                    description: meta.items[0].snippet.description,
+                    tags: meta.items[0].snippet.tags || [],
+                    thumbnail: meta.items[0].snippet.thumbnails.high.url
+                };
+
+                const analysis = await analyzeWithAI(auditData);
+                
+                if (userData.plan !== 'Pro') {
+                    await updateDoc(doc(db, "users", currentUser.uid), {
+                        credits: increment(-1)
+                    });
+                }
+
+                renderResults(auditData, analysis);
+            } catch (err) {
+                console.error(err);
+                alert("Audit failed: " + err.message);
+            } finally {
+                showLoading(false);
+            }
+        };
+
         function extractVideoId(url) {
-            const regex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
-            const match = url.match(regex);
+            const match = url.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/);
             return match ? match[1] : null;
         }
 
-        async function performAudit() {
-            const videoUrl = document.getElementById('video-url').value;
-            const errorMsg = document.getElementById('error-msg');
-            const resultsArea = document.getElementById('results-area');
-            const loading = document.getElementById('loading');
-            const btn = document.getElementById('audit-btn');
-
-            if (!YT_API_KEY || !AI_API_KEY) {
-                showError("Developer: Please enter API keys in the script section of index.html.");
-                return;
-            }
-
-            const videoId = extractVideoId(videoUrl);
-            if (!videoId) {
-                showError("Please enter a valid YouTube video URL.");
-                return;
-            }
-
-            errorMsg.classList.add('hidden');
-            resultsArea.classList.add('hidden');
-            loading.classList.remove('hidden');
-            btn.disabled = true;
-
-            try {
-                const metaUrl = `https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails&id=${videoId}&key=${YT_API_KEY}`;
-                const metaRes = await fetch(metaUrl);
-                const metaData = await metaRes.json();
-
-                if (!metaData.items?.length) throw new Error("Video not found. Please check the URL.");
-
-                const video = metaData.items[0];
-                const auditData = {
-                    title: video.snippet.title,
-                    description: video.snippet.description,
-                    tags: video.snippet.tags || [],
-                    thumbnail: video.snippet.thumbnails.high.url
-                };
-
-                const analysis = await analyzeWithAI(auditData, AI_API_KEY);
-                renderResults(auditData, analysis);
-
-            } catch (err) {
-                showError(err.message);
-            } finally {
-                loading.classList.add('hidden');
-                btn.disabled = false;
-            }
-        }
-
-        async function analyzeWithAI(data, apiKey) {
-            const systemPrompt = `You are a YouTube Growth Strategist. Analyze the following video metadata and return a JSON object.
-            IMPORTANT: For the 'Grow Your Video' section, provide EXACTLY 6 detailed suggestions in the 'bilingualChecklist' array. 
-            Ensure instructions are written in simple, clear, easy-to-understand English.
-            Structure:
+        async function analyzeWithAI(data) {
+            const systemPrompt = `You are a YouTube SEO Expert. Analyze metadata and return JSON:
             {
                 "scores": { "title": 0-10, "thumbnail": 0-10, "seo": 0-10, "overall": 0-10 },
-                "titleAnalysis": {
-                    "score": 0-10,
-                    "suggestions": ["Title Option 1", "Title Option 2", "Title Option 3"]
-                },
-                "thumbnailAudit": [
-                    { "tip": "Brief visual instruction (e.g. Add bold outlines)", "reason": "why it helps" }
-                ],
-                "thumbnailConcepts": [
-                    { "conceptName": "Name for new idea", "details": "Detailed visual layout for a reshoot/edit" }
-                ],
-                "tagLab": {
-                    "suggestedHashtags": ["#tag1", "#tag2"],
-                    "keywordTags": "tag1, tag2, keyword 3, keyword 4"
-                },
+                "titleAnalysis": { "score": 0-10, "suggestions": ["Alt Title 1", "Alt Title 2", "Alt Title 3"] },
+                "thumbnailAudit": [{ "tip": "Improvement", "reason": "Why" }],
+                "thumbnailConcepts": [{ "conceptName": "New Concept", "details": "Visual plan" }],
+                "tagLab": { "suggestedHashtags": ["#tag1"], "keywordTags": "keyword1, keyword2" },
                 "bilingualChecklist": [
-                    { "en": "Step instruction in Simple English", "local": "Step instruction in video's primary language" }
+                    { "en": "Step instruction", "local": "Local Language Instruction" }
                 ]
             }
-            Analyze Data: Title: ${data.title}, Description: ${data.description.substring(0, 400)}, Current Tags: ${data.tags.join(',')}`;
+            Analyze Title: ${data.title}, Desc: ${data.description.substring(0,300)}`;
 
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
-            const payload = {
-                contents: [{ parts: [{ text: "Conduct a full audit and return the results in JSON format." }] }],
-                systemInstruction: { parts: [{ text: systemPrompt }] },
-                generationConfig: { responseMimeType: "application/json" }
-            };
-
-            const response = await fetchWithRetry(url, { method: 'POST', body: JSON.stringify(payload) });
-            const result = await response.json();
-            return JSON.parse(result.candidates[0].content.parts[0].text);
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${AI_API_KEY}`;
+            const res = await fetch(url, {
+                method: 'POST',
+                body: JSON.stringify({
+                    contents: [{ parts: [{ text: "Analyze video metadata and return full JSON response." }] }],
+                    systemInstruction: { parts: [{ text: systemPrompt }] },
+                    generationConfig: { responseMimeType: "application/json" }
+                })
+            });
+            const json = await res.json();
+            if (json.error) throw new Error(json.error.message);
+            return JSON.parse(json.candidates[0].content.parts[0].text);
         }
 
         function renderResults(meta, ai) {
-            // Preview
             document.getElementById('vid-thumb-preview').src = meta.thumbnail;
             document.getElementById('thumb-score-mini').innerText = `${ai.scores.thumbnail}/10`;
+            document.getElementById('current-title-display').innerText = meta.title;
+            
+            document.getElementById('title-suggestions-list').innerHTML = (ai.titleAnalysis.suggestions || []).map(t => 
+                `<div class="bg-blue-50 p-3 rounded-lg font-bold text-blue-900 text-sm shadow-sm mb-2">${t}</div>`
+            ).join('');
 
-            // Scores
+            document.getElementById('thumb-suggestions-list').innerHTML = (ai.thumbnailAudit || []).map(s => `
+                <div class="bg-white p-3 rounded-xl border border-gray-100 shadow-sm mb-2">
+                    <p class="font-bold text-gray-800 text-xs leading-tight"><i class="fa-solid fa-pen-ruler text-purple-500 mr-2"></i> ${s.tip}</p>
+                    <p class="text-[10px] text-gray-400 mt-1 leading-tight">${s.reason}</p>
+                </div>
+            `).join('');
+
+            document.getElementById('thumb-concepts-list').innerHTML = (ai.thumbnailConcepts || []).map(c => `
+                <div class="bg-orange-50 p-3 rounded-xl border border-orange-100 shadow-sm border-l-4 border-l-orange-400 mb-2">
+                    <p class="font-bold text-orange-900 text-[10px] uppercase mb-1">${c.conceptName}</p>
+                    <p class="text-[10px] text-orange-700 leading-tight">${c.details}</p>
+                </div>
+            `).join('');
+
+            document.getElementById('copy-keywords-area').value = ai.tagLab.keywordTags || '';
+            
+            document.getElementById('bilingual-checklist').innerHTML = (ai.bilingualChecklist || []).map(item => `
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col justify-between hover:shadow-md transition-shadow">
+                    <p class="font-bold text-gray-800 text-sm mb-2 leading-tight"><i class="fa-solid fa-circle-check text-green-500 mr-2"></i>${item.en}</p>
+                    <div class="pt-3 border-t border-gray-50 italic text-gray-500 text-xs tracking-tight">${item.local}</div>
+                </div>
+            `).join('');
+
             const scoresGrid = document.getElementById('scores-grid');
             scoresGrid.innerHTML = '';
             const scoreLabels = { title: 'Title Score', thumbnail: 'Visual Grade', seo: 'SEO Strength', overall: 'Audit Grade' };
@@ -301,90 +294,171 @@
                 const color = val > 7 ? 'text-green-600' : val > 4 ? 'text-orange-500' : 'text-red-600';
                 const bg = val > 7 ? 'bg-green-50' : val > 4 ? 'bg-orange-50' : 'bg-red-50';
                 scoresGrid.innerHTML += `
-                    <div class="${bg} rounded-[1.5rem] p-6 text-center border border-white shadow-sm transition-transform hover:scale-105">
+                    <div class="${bg} rounded-2xl p-6 text-center border border-white shadow-sm transition-transform hover:scale-105">
                         <div class="text-3xl font-black ${color} mb-1">${val}/10</div>
-                        <div class="text-[10px] uppercase font-extrabold text-gray-400 tracking-widest">${scoreLabels[key]}</div>
+                        <div class="text-[10px] uppercase font-extrabold text-gray-400 tracking-widest">${scoreLabels[key] || key}</div>
                     </div>
                 `;
             });
 
-            // Section 1: Title
-            document.getElementById('current-title-display').innerText = meta.title;
-            const statusBadge = document.getElementById('title-status-badge');
-            statusBadge.innerHTML = ai.titleAnalysis.score < 6 
-                ? `<span class="bg-red-100 text-red-700 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-tighter">Action Required</span>`
-                : `<span class="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-tighter">Strong Performance</span>`;
-
-            document.getElementById('title-suggestions-list').innerHTML = ai.titleAnalysis.suggestions.map(t => `
-                <div class="bg-blue-50 p-4 rounded-xl border border-blue-100 font-bold text-blue-900 text-sm shadow-sm">${t}</div>
-            `).join('');
-
-            // Section 2: Thumbnail
-            document.getElementById('thumb-suggestions-list').innerHTML = ai.thumbnailAudit.map(s => `
-                <div class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
-                    <p class="font-bold text-gray-800 text-xs flex items-center gap-2">
-                        <i class="fa-solid fa-pen-ruler text-purple-500"></i> ${s.tip}
-                    </p>
-                    <p class="text-[10px] text-gray-400 mt-1">${s.reason}</p>
-                </div>
-            `).join('');
-
-            document.getElementById('thumb-concepts-list').innerHTML = ai.thumbnailConcepts.map(c => `
-                <div class="bg-orange-50 p-4 rounded-xl border border-orange-100 shadow-sm border-l-4 border-l-orange-400">
-                    <p class="font-bold text-orange-900 text-xs mb-1 uppercase tracking-tight">${c.conceptName}</p>
-                    <p class="text-[10px] text-orange-700 leading-snug font-medium">${c.details}</p>
-                </div>
-            `).join('');
-
-            // Section 3: Hashtags
-            document.getElementById('original-tags').innerHTML = meta.tags.length 
-                ? meta.tags.map(t => `<span class="bg-gray-100 text-gray-500 px-2 py-1 rounded-lg text-[10px] font-semibold">#${t}</span>`).join('')
-                : '<p class="text-xs text-gray-400 italic">No tags detected in video.</p>';
-            
-            document.getElementById('suggested-hashtags').innerHTML = ai.tagLab.suggestedHashtags.map(t => `
-                <span class="bg-red-50 text-red-600 px-3 py-1 rounded-lg text-xs font-bold border border-red-100 shadow-sm">#${t}</span>
-            `).join('');
-
-            // Section 4: Keyword Lab
-            document.getElementById('copy-keywords-area').value = ai.tagLab.keywordTags;
-
-            // Section 5: Grow Your Video (Suggestions)
-            const checklistArea = document.getElementById('bilingual-checklist');
-            if (ai.bilingualChecklist && ai.bilingualChecklist.length > 0) {
-                checklistArea.innerHTML = ai.bilingualChecklist.map(item => `
-                    <div class="bg-white p-6 rounded-[1.5rem] shadow-sm border border-gray-100 flex flex-col justify-between hover:shadow-md transition-shadow">
-                        <div>
-                            <p class="text-gray-800 font-bold mb-3 flex items-start leading-tight">
-                                <i class="fa-solid fa-circle-check text-green-500 mr-2 mt-1"></i> ${item.en}
-                            </p>
-                        </div>
-                        <div class="pt-3 border-t border-gray-50 italic text-gray-500 text-sm tracking-tight leading-relaxed">
-                            ${item.local}
-                        </div>
-                    </div>
-                `).join('');
-            } else {
-                checklistArea.innerHTML = `<p class="col-span-full text-center py-10 text-gray-400 italic">Analyzing deeper growth signals...</p>`;
-            }
-
             document.getElementById('results-area').classList.remove('hidden');
-        }
-
-        function copyKeywords() {
-            const area = document.getElementById('copy-keywords-area');
-            area.select();
-            document.execCommand('copy');
-            const btn = event.currentTarget;
-            btn.innerHTML = '<i class="fa-solid fa-check"></i> Copied!';
-            setTimeout(() => { btn.innerHTML = '<i class="fa-solid fa-copy"></i> Copy All'; }, 2000);
-        }
-
-        function showError(msg) {
-            const errorMsg = document.getElementById('error-msg');
-            errorMsg.innerText = msg;
-            errorMsg.classList.remove('hidden');
-            document.getElementById('loading').classList.add('hidden');
+            document.getElementById('results-area').scrollIntoView({ behavior: 'smooth' });
         }
     </script>
+</head>
+<body class="bg-[#fafafa] min-h-screen hero-gradient">
+
+    <!-- Navbar -->
+    <nav class="py-4 border-b border-gray-100 bg-white/80 sticky top-0 z-50 backdrop-blur-md">
+        <div class="max-w-5xl mx-auto px-4 flex justify-between items-center">
+            <div class="flex items-center space-x-2">
+                <div class="bg-red-600 p-2 rounded-lg shadow-lg shadow-red-100"><i class="fa-solid fa-chart-line text-white"></i></div>
+                <span class="font-extrabold text-xl">YT Audit<span class="text-red-600">Pro</span></span>
+            </div>
+            
+            <div id="auth-trigger-btn">
+                <button onclick="window.toggleAuthModal(true)" class="bg-gray-900 text-white px-6 py-2 rounded-full font-bold text-sm hover:bg-black transition-colors">Sign In</button>
+            </div>
+
+            <div id="user-status-bar" class="hidden flex items-center space-x-4">
+                <div class="text-right">
+                    <p id="user-email-display" class="text-[10px] font-bold text-gray-400 uppercase tracking-widest"></p>
+                    <p class="text-xs font-bold">
+                        <span id="credit-count" class="text-red-600">0</span> Credits • 
+                        <span id="plan-badge" class="text-blue-600">Free</span>
+                    </p>
+                </div>
+                <button onclick="window.logout()" class="text-gray-400 hover:text-red-600 transition-colors"><i class="fa-solid fa-right-from-bracket"></i></button>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-5xl mx-auto px-4 py-12">
+        <!-- Hero -->
+        <div class="text-center mb-10">
+            <h2 class="text-5xl font-extrabold mb-4 tracking-tight leading-tight">AI Video <span class="text-red-600">Growth Engine</span></h2>
+            <p class="text-gray-500 text-lg">Detailed AI insights to explode your views.</p>
+        </div>
+
+        <!-- Search Bar -->
+        <div class="glass p-2 rounded-[2.5rem] shadow-2xl flex flex-col md:flex-row gap-2 mb-16 max-w-4xl mx-auto">
+            <div class="flex-grow flex items-center px-6">
+                <i class="fa-brands fa-youtube text-red-600 text-xl mr-4"></i>
+                <input type="text" id="video-url" placeholder="Paste YouTube link here..." class="w-full py-5 bg-transparent outline-none text-lg font-medium placeholder:text-gray-300">
+            </div>
+            <button onclick="window.performAudit()" class="bg-red-600 text-white px-10 py-5 rounded-[2.2rem] font-bold shadow-xl shadow-red-200 hover:bg-red-700 transition-all active:scale-95">Analyze Video</button>
+        </div>
+
+        <!-- Loading -->
+        <div id="loading" class="hidden text-center py-20">
+            <div class="animate-spin inline-block w-12 h-12 border-4 border-red-600 border-t-transparent rounded-full mb-6"></div>
+            <p class="font-bold text-xl text-gray-900">Scanning metadata...</p>
+            <p class="text-gray-400 text-sm">Our AI is drafting your growth blueprint</p>
+        </div>
+
+        <!-- Results -->
+        <div id="results-area" class="hidden space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
+            <div id="scores-grid" class="grid grid-cols-2 md:grid-cols-4 gap-4"></div>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div class="glass p-8 rounded-[2.5rem]">
+                    <h3 class="font-bold text-xl mb-6 flex items-center"><i class="fa-solid fa-pen-nib text-blue-500 mr-3"></i> Title Clinic</h3>
+                    <div id="current-title-display" class="p-4 bg-gray-50 rounded-xl mb-6 border border-gray-100 text-gray-700 text-sm font-medium"></div>
+                    <p class="text-[10px] font-black text-blue-500 uppercase tracking-widest mb-3">Suggested Alternatives</p>
+                    <div id="title-suggestions-list"></div>
+                </div>
+                <div class="glass p-8 rounded-[2.5rem]">
+                    <h3 class="font-bold text-xl mb-6 flex items-center"><i class="fa-solid fa-eye text-red-500 mr-3"></i> Visual Audit</h3>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div class="relative">
+                            <img id="vid-thumb-preview" class="rounded-2xl w-full shadow-lg aspect-video object-cover">
+                            <div id="thumb-score-mini" class="absolute -bottom-2 -right-2 bg-red-600 text-white font-black px-3 py-1 rounded-lg text-sm shadow-lg"></div>
+                        </div>
+                        <div id="thumb-suggestions-list"></div>
+                    </div>
+                    <div class="mt-6 pt-6 border-t border-gray-50">
+                        <p class="text-[10px] font-black text-orange-500 uppercase tracking-widest mb-3">AI Visual Concepts</p>
+                        <div id="thumb-concepts-list" class="grid grid-cols-1 gap-2"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="glass p-8 rounded-[2.5rem] bg-gray-900 text-white border-none shadow-xl shadow-gray-200">
+                <div class="flex items-center space-x-3 mb-4">
+                    <div class="w-8 h-8 rounded-full bg-red-600 text-white flex items-center justify-center font-bold text-sm">4</div>
+                    <h3 class="text-2xl font-extrabold text-white">Keyword Lab</h3>
+                </div>
+                <p class="text-gray-400 text-sm mb-6">SEO tags optimized for search. Paste these into your YouTube Studio tags box.</p>
+                <div class="relative">
+                    <textarea id="copy-keywords-area" class="w-full h-32 bg-gray-800/50 rounded-2xl p-6 text-sm font-mono text-gray-400 border border-gray-700 outline-none focus:ring-1 focus:ring-red-500" readonly></textarea>
+                    <button onclick="window.copyKeywords()" class="absolute top-4 right-4 bg-red-600 text-white px-5 py-2 rounded-xl text-xs font-bold hover:bg-red-500 transition-all shadow-lg">Copy All</button>
+                </div>
+            </div>
+            <div class="glass p-8 rounded-[2.5rem] bg-gradient-to-br from-white to-green-50/40">
+                <h3 class="font-bold text-2xl mb-2">Grow Your Video</h3>
+                <p class="text-gray-500 mb-8 font-semibold">Follow these instructions to grow your video and get more views</p>
+                <div id="bilingual-checklist" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+            </div>
+        </div>
+    </main>
+
+    <!-- AUTH MODAL -->
+    <div id="auth-modal" class="hidden fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+        <div class="bg-white w-full max-w-md rounded-[2.5rem] p-10 relative shadow-2xl animate-in zoom-in duration-300">
+            <button onclick="window.toggleAuthModal(false)" class="absolute top-6 right-8 text-gray-300 hover:text-gray-900"><i class="fa-solid fa-xmark text-2xl"></i></button>
+            <h3 class="text-3xl font-extrabold mb-2 text-center">Get Started</h3>
+            <p class="text-gray-400 text-sm mb-6 text-center">Unlock your 2 free video audits.</p>
+            
+            <div class="space-y-4">
+                <button onclick="window.handleGoogleLogin()" class="w-full py-4 border border-gray-200 rounded-2xl flex items-center justify-center space-x-3 font-bold text-gray-700 hover:bg-gray-50 transition-all">
+                    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/action/google.svg" class="w-5 h-5">
+                    <span>Sign in with Google</span>
+                </button>
+                <div class="relative py-2 flex items-center">
+                    <div class="flex-grow border-t border-gray-100"></div>
+                    <span class="px-3 text-xs text-gray-300 font-bold uppercase tracking-widest">or email</span>
+                    <div class="flex-grow border-t border-gray-100"></div>
+                </div>
+                <input type="email" id="auth-email" placeholder="Email Address" class="w-full p-4 bg-gray-50 rounded-2xl outline-none focus:ring-2 ring-red-500">
+                <input type="password" id="auth-password" placeholder="Password" class="w-full p-4 bg-gray-50 rounded-2xl outline-none focus:ring-2 ring-red-500">
+                <p id="auth-error" class="hidden text-red-500 text-xs font-bold px-2"></p>
+                <div class="grid grid-cols-2 gap-4 pt-4">
+                    <button onclick="window.handleAuth('signup')" class="bg-red-600 text-white py-4 rounded-2xl font-bold hover:bg-red-700">Sign Up</button>
+                    <button onclick="window.handleAuth('login')" class="bg-gray-900 text-white py-4 rounded-2xl font-bold hover:bg-black">Login</button>
+                </div>
+                <button onclick="window.handleAuth('reset')" class="w-full text-center text-xs font-bold text-gray-400 hover:text-red-600 pt-2">Forgot Password?</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- PAYWALL MODAL -->
+    <div id="paywall-modal" class="hidden fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+        <div class="max-w-4xl w-full grid grid-cols-1 md:grid-cols-2 gap-6 animate-in slide-in-from-bottom-8">
+            <div class="bg-white rounded-[2.5rem] p-10 shadow-2xl relative overflow-hidden flex flex-col justify-between">
+                <div class="bg-red-600 text-white text-[10px] font-black uppercase tracking-widest px-4 py-1 absolute top-6 right-[-30px] rotate-45 w-40 text-center">Popular</div>
+                <div>
+                    <h4 class="text-2xl font-bold mb-2">Premium</h4>
+                    <p class="text-4xl font-black mb-6">₹100 <span class="text-sm font-normal text-gray-400">/ 10 Credits</span></p>
+                    <ul class="space-y-3 mb-10 text-sm text-gray-600">
+                        <li><i class="fa-solid fa-circle-check text-green-500 mr-2"></i> 10 Comprehensive Audits</li>
+                        <li><i class="fa-solid fa-circle-check text-green-500 mr-2"></i> Advanced Keyword Research</li>
+                        <li><i class="fa-solid fa-circle-check text-green-500 mr-2"></i> Custom Visual Strategies</li>
+                    </ul>
+                </div>
+                <button class="w-full py-4 bg-red-600 text-white rounded-2xl font-bold hover:bg-red-700 shadow-xl shadow-red-200">Upgrade Now</button>
+            </div>
+            <div class="bg-gray-900 rounded-[2.5rem] p-10 shadow-2xl text-white flex flex-col justify-between">
+                <div>
+                    <h4 class="text-2xl font-bold mb-2">Pro</h4>
+                    <p class="text-4xl font-black mb-6">₹3000 <span class="text-sm font-normal text-gray-500">/ month</span></p>
+                    <ul class="space-y-3 mb-10 text-sm text-gray-400">
+                        <li><i class="fa-solid fa-infinity text-blue-500 mr-2"></i> Unlimited Analysis Always</li>
+                        <li><i class="fa-solid fa-bolt text-blue-500 mr-2"></i> Priority AI Server Access</li>
+                        <li><i class="fa-solid fa-headset text-blue-500 mr-2"></i> 24/7 Priority Support</li>
+                    </ul>
+                </div>
+                <button class="w-full py-4 bg-white text-gray-900 rounded-2xl font-bold hover:bg-gray-100 transition-colors">Go Unlimited</button>
+            </div>
+            <button onclick="window.togglePaywall(false)" class="col-span-full text-center text-gray-400 font-bold hover:text-white mt-4">Close Pricing</button>
+        </div>
+    </div>
 </body>
 </html>
