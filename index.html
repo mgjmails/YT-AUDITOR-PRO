@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YT Audit Pro | AI Video Metadata Analysis</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap');
+        body { font-family: 'Plus Jakarta Sans', sans-serif; }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(229, 231, 235, 1);
+        }
+        .hero-gradient {
+            background: radial-gradient(circle at top right, #fef2f2, transparent);
+        }
+        .section-step {
+            @apply flex items-center space-x-3 mb-6;
+        }
+        .step-number {
+            @apply w-8 h-8 rounded-full bg-red-600 text-white flex items-center justify-center font-bold text-sm shadow-lg shadow-red-100;
+        }
+        /* Custom scrollbar for keywords */
+        textarea::-webkit-scrollbar { width: 8px; }
+        textarea::-webkit-scrollbar-track { background: #1f2937; }
+        textarea::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 4px; }
+    </style>
+</head>
+<body class="bg-[#fafafa] min-h-screen text-gray-900 hero-gradient">
+
+    <!-- Header -->
+    <header class="py-6 mb-4">
+        <div class="max-w-5xl mx-auto px-4 flex justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <div class="bg-red-600 p-2.5 rounded-xl shadow-lg shadow-red-200">
+                    <i class="fa-solid fa-magnifying-glass-chart text-white text-xl"></i>
+                </div>
+                <h1 class="text-2xl font-extrabold tracking-tight text-gray-900">YT Audit<span class="text-red-600">Pro</span></h1>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-5xl mx-auto px-4 pb-20">
+        
+        <!-- Hero Section -->
+        <section class="text-center mb-12">
+            <h2 class="text-5xl md:text-6xl font-extrabold text-gray-900 mb-6 tracking-tight leading-tight">
+                Audit your videos <br/>
+                <span class="text-transparent bg-clip-text bg-gradient-to-r from-red-600 to-orange-500">with AI Insights</span>
+            </h2>
+            <p class="text-gray-500 text-lg max-w-2xl mx-auto">
+                Get a deep-dive analysis of your metadata, thumbnail performance, and SEO optimizations in seconds.
+            </p>
+        </section>
+
+        <!-- Search Section -->
+        <section class="glass-card rounded-[2.5rem] p-2 shadow-2xl shadow-gray-200/50 mb-12 border-gray-100">
+            <div class="flex flex-col md:flex-row gap-2">
+                <div class="relative flex-grow">
+                    <div class="absolute inset-y-0 left-6 flex items-center pointer-events-none">
+                        <i class="fa-brands fa-youtube text-red-600 text-xl"></i>
+                    </div>
+                    <input type="text" id="video-url" placeholder="Paste your YouTube video link here..." 
+                           class="block w-full pl-14 pr-6 py-6 bg-white border-none rounded-[1.8rem] focus:ring-2 focus:ring-red-500 outline-none text-lg font-medium placeholder:text-gray-400">
+                </div>
+                <button onclick="performAudit()" id="audit-btn" class="bg-red-600 hover:bg-red-700 text-white font-bold py-6 px-10 rounded-[1.8rem] transition-all flex items-center justify-center space-x-3 shadow-xl shadow-red-100 active:scale-95 group border-none outline-none">
+                    <span class="text-lg">Analyze Video</span>
+                    <i class="fa-solid fa-arrow-right group-hover:translate-x-1 transition-transform"></i>
+                </button>
+            </div>
+            <div id="error-msg" class="hidden mx-4 my-4 p-4 bg-red-50 text-red-700 rounded-2xl text-sm border border-red-100 font-semibold text-center"></div>
+        </section>
+
+        <!-- Loading State -->
+        <div id="loading" class="hidden py-20 text-center">
+            <div class="relative inline-block mb-6">
+                <div class="rounded-full h-16 w-16 border-4 border-red-100 border-t-red-600 animate-spin"></div>
+            </div>
+            <p class="text-gray-900 font-bold text-xl mb-1">Deep-Scanning Video...</p>
+            <p class="text-gray-400 text-sm italic">Analyzing visuals and crafting growth strategies</p>
+        </div>
+
+        <!-- Results Area -->
+        <div id="results-area" class="hidden space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
+            
+            <!-- Overall Scores -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4" id="scores-grid"></div>
+
+            <!-- 1. Title Clinic -->
+            <section class="glass-card rounded-[2rem] p-8 shadow-xl border-gray-100">
+                <div class="section-step">
+                    <div class="step-number">1</div>
+                    <h3 class="text-2xl font-extrabold text-gray-900">Title Clinic</h3>
+                </div>
+                
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <div class="bg-gray-50 p-6 rounded-2xl border border-gray-100">
+                        <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Current Title</p>
+                        <h4 id="current-title-display" class="text-lg font-bold text-gray-800 leading-snug"></h4>
+                        <div id="title-status-badge" class="mt-4"></div>
+                    </div>
+                    <div>
+                        <p class="text-[10px] font-black text-blue-500 uppercase tracking-widest mb-3">AI Optimized Alternatives</p>
+                        <div class="space-y-3" id="title-suggestions-list"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 2. Analyze the Thumbnail -->
+            <section class="glass-card rounded-[2rem] p-8 shadow-xl border-gray-100">
+                <div class="section-step">
+                    <div class="step-number">2</div>
+                    <h3 class="text-2xl font-extrabold text-gray-900">Analyze the Thumbnail</h3>
+                </div>
+                
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+                    <div class="relative lg:col-span-1">
+                        <img id="vid-thumb-preview" src="" alt="Thumbnail" class="w-full rounded-2xl shadow-lg ring-1 ring-gray-100">
+                        <div class="absolute -bottom-4 -right-4 bg-white p-3 rounded-xl shadow-lg border border-gray-100 text-center min-w-[100px]">
+                            <p class="text-[9px] font-bold text-gray-400 uppercase mb-1">Visual Score</p>
+                            <p id="thumb-score-mini" class="text-xl font-black text-red-600"></p>
+                        </div>
+                    </div>
+                    <div class="lg:col-span-1">
+                        <p class="text-[10px] font-black text-purple-500 uppercase tracking-widest mb-4">Fix Current Design</p>
+                        <div id="thumb-suggestions-list" class="space-y-4"></div>
+                    </div>
+                    <div class="lg:col-span-1">
+                        <p class="text-[10px] font-black text-orange-500 uppercase tracking-widest mb-4">New Visual Concepts</p>
+                        <div id="thumb-concepts-list" class="space-y-4"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 3. Hashtag Lab -->
+            <section class="glass-card rounded-[2rem] p-8 shadow-xl border-gray-100">
+                <div class="section-step">
+                    <div class="step-number">3</div>
+                    <h3 class="text-2xl font-extrabold text-gray-900">Hashtag Lab</h3>
+                </div>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <div>
+                        <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">Currently Used</p>
+                        <div id="original-tags" class="flex flex-wrap gap-2"></div>
+                    </div>
+                    <div>
+                        <p class="text-[10px] font-black text-red-500 uppercase tracking-widest mb-4">Suggested Viral Hashtags</p>
+                        <div id="suggested-hashtags" class="flex flex-wrap gap-2"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 4. Keyword Lab -->
+            <section class="glass-card rounded-[2rem] p-8 shadow-xl border-none bg-gray-900 text-white overflow-hidden">
+                <div class="flex items-center space-x-3 mb-4">
+                    <div class="w-8 h-8 rounded-full bg-red-600 text-white flex items-center justify-center font-bold text-sm">4</div>
+                    <h3 class="text-2xl font-extrabold text-white">Keyword Lab</h3>
+                </div>
+                <p class="text-gray-400 text-sm mb-6">New SEO tags optimized for YouTube Search. Copy and paste these into your video tags.</p>
+                <div class="relative">
+                    <textarea id="copy-keywords-area" readonly 
+                              class="w-full bg-gray-800/50 border border-gray-700 rounded-xl p-6 text-gray-300 font-mono text-sm leading-relaxed resize-none h-32 focus:ring-1 focus:ring-red-500 outline-none"></textarea>
+                    <button onclick="copyKeywords()" class="absolute top-4 right-4 bg-red-600 hover:bg-red-500 text-white px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 shadow-lg">
+                        <i class="fa-solid fa-copy"></i> Copy All
+                    </button>
+                </div>
+            </section>
+
+            <!-- 5. Grow Your Video -->
+            <section class="glass-card rounded-[2rem] p-8 shadow-xl border-gray-100 bg-gradient-to-br from-white to-green-50/40">
+                <div class="section-step">
+                    <div class="step-number">5</div>
+                    <h3 class="text-2xl font-extrabold text-gray-900">Grow Your Video</h3>
+                </div>
+                <p class="text-gray-600 mb-8 text-lg font-semibold px-1">Follow this instructions to grow your video more and get more views</p>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6" id="bilingual-checklist">
+                    <!-- Suggestions rendered here -->
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <script>
+        // API CONFIGURATION
+        const YT_API_KEY = "AIzaSyCm4_V3xrOVzXwPAqmO4pS8NR9ENVkdzK4"; 
+        const AI_API_KEY = "AIzaSyAAitSgoxy7G6uAO9XXRy3BR4UFa8lCbng"; 
+
+        async function fetchWithRetry(url, options, retries = 3) {
+            const response = await fetch(url, options);
+            if (!response.ok && retries > 0) return fetchWithRetry(url, options, retries - 1);
+            return response;
+        }
+
+        function extractVideoId(url) {
+            const regex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
+            const match = url.match(regex);
+            return match ? match[1] : null;
+        }
+
+        async function performAudit() {
+            const videoUrl = document.getElementById('video-url').value;
+            const errorMsg = document.getElementById('error-msg');
+            const resultsArea = document.getElementById('results-area');
+            const loading = document.getElementById('loading');
+            const btn = document.getElementById('audit-btn');
+
+            if (!YT_API_KEY || !AI_API_KEY) {
+                showError("Developer: Please enter API keys in the script section of index.html.");
+                return;
+            }
+
+            const videoId = extractVideoId(videoUrl);
+            if (!videoId) {
+                showError("Please enter a valid YouTube video URL.");
+                return;
+            }
+
+            errorMsg.classList.add('hidden');
+            resultsArea.classList.add('hidden');
+            loading.classList.remove('hidden');
+            btn.disabled = true;
+
+            try {
+                const metaUrl = `https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails&id=${videoId}&key=${YT_API_KEY}`;
+                const metaRes = await fetch(metaUrl);
+                const metaData = await metaRes.json();
+
+                if (!metaData.items?.length) throw new Error("Video not found. Please check the URL.");
+
+                const video = metaData.items[0];
+                const auditData = {
+                    title: video.snippet.title,
+                    description: video.snippet.description,
+                    tags: video.snippet.tags || [],
+                    thumbnail: video.snippet.thumbnails.high.url
+                };
+
+                const analysis = await analyzeWithAI(auditData, AI_API_KEY);
+                renderResults(auditData, analysis);
+
+            } catch (err) {
+                showError(err.message);
+            } finally {
+                loading.classList.add('hidden');
+                btn.disabled = false;
+            }
+        }
+
+        async function analyzeWithAI(data, apiKey) {
+            const systemPrompt = `You are a YouTube Growth Strategist. Analyze the following video metadata and return a JSON object.
+            IMPORTANT: For the 'Grow Your Video' section, provide EXACTLY 6 detailed suggestions in the 'bilingualChecklist' array. 
+            Ensure instructions are written in simple, clear, easy-to-understand English.
+            Structure:
+            {
+                "scores": { "title": 0-10, "thumbnail": 0-10, "seo": 0-10, "overall": 0-10 },
+                "titleAnalysis": {
+                    "score": 0-10,
+                    "suggestions": ["Title Option 1", "Title Option 2", "Title Option 3"]
+                },
+                "thumbnailAudit": [
+                    { "tip": "Brief visual instruction (e.g. Add bold outlines)", "reason": "why it helps" }
+                ],
+                "thumbnailConcepts": [
+                    { "conceptName": "Name for new idea", "details": "Detailed visual layout for a reshoot/edit" }
+                ],
+                "tagLab": {
+                    "suggestedHashtags": ["#tag1", "#tag2"],
+                    "keywordTags": "tag1, tag2, keyword 3, keyword 4"
+                },
+                "bilingualChecklist": [
+                    { "en": "Step instruction in Simple English", "local": "Step instruction in video's primary language" }
+                ]
+            }
+            Analyze Data: Title: ${data.title}, Description: ${data.description.substring(0, 400)}, Current Tags: ${data.tags.join(',')}`;
+
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+            const payload = {
+                contents: [{ parts: [{ text: "Conduct a full audit and return the results in JSON format." }] }],
+                systemInstruction: { parts: [{ text: systemPrompt }] },
+                generationConfig: { responseMimeType: "application/json" }
+            };
+
+            const response = await fetchWithRetry(url, { method: 'POST', body: JSON.stringify(payload) });
+            const result = await response.json();
+            return JSON.parse(result.candidates[0].content.parts[0].text);
+        }
+
+        function renderResults(meta, ai) {
+            // Preview
+            document.getElementById('vid-thumb-preview').src = meta.thumbnail;
+            document.getElementById('thumb-score-mini').innerText = `${ai.scores.thumbnail}/10`;
+
+            // Scores
+            const scoresGrid = document.getElementById('scores-grid');
+            scoresGrid.innerHTML = '';
+            const scoreLabels = { title: 'Title Score', thumbnail: 'Visual Grade', seo: 'SEO Strength', overall: 'Audit Grade' };
+            Object.entries(ai.scores).forEach(([key, val]) => {
+                const color = val > 7 ? 'text-green-600' : val > 4 ? 'text-orange-500' : 'text-red-600';
+                const bg = val > 7 ? 'bg-green-50' : val > 4 ? 'bg-orange-50' : 'bg-red-50';
+                scoresGrid.innerHTML += `
+                    <div class="${bg} rounded-[1.5rem] p-6 text-center border border-white shadow-sm transition-transform hover:scale-105">
+                        <div class="text-3xl font-black ${color} mb-1">${val}/10</div>
+                        <div class="text-[10px] uppercase font-extrabold text-gray-400 tracking-widest">${scoreLabels[key]}</div>
+                    </div>
+                `;
+            });
+
+            // Section 1: Title
+            document.getElementById('current-title-display').innerText = meta.title;
+            const statusBadge = document.getElementById('title-status-badge');
+            statusBadge.innerHTML = ai.titleAnalysis.score < 6 
+                ? `<span class="bg-red-100 text-red-700 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-tighter">Action Required</span>`
+                : `<span class="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-tighter">Strong Performance</span>`;
+
+            document.getElementById('title-suggestions-list').innerHTML = ai.titleAnalysis.suggestions.map(t => `
+                <div class="bg-blue-50 p-4 rounded-xl border border-blue-100 font-bold text-blue-900 text-sm shadow-sm">${t}</div>
+            `).join('');
+
+            // Section 2: Thumbnail
+            document.getElementById('thumb-suggestions-list').innerHTML = ai.thumbnailAudit.map(s => `
+                <div class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
+                    <p class="font-bold text-gray-800 text-xs flex items-center gap-2">
+                        <i class="fa-solid fa-pen-ruler text-purple-500"></i> ${s.tip}
+                    </p>
+                    <p class="text-[10px] text-gray-400 mt-1">${s.reason}</p>
+                </div>
+            `).join('');
+
+            document.getElementById('thumb-concepts-list').innerHTML = ai.thumbnailConcepts.map(c => `
+                <div class="bg-orange-50 p-4 rounded-xl border border-orange-100 shadow-sm border-l-4 border-l-orange-400">
+                    <p class="font-bold text-orange-900 text-xs mb-1 uppercase tracking-tight">${c.conceptName}</p>
+                    <p class="text-[10px] text-orange-700 leading-snug font-medium">${c.details}</p>
+                </div>
+            `).join('');
+
+            // Section 3: Hashtags
+            document.getElementById('original-tags').innerHTML = meta.tags.length 
+                ? meta.tags.map(t => `<span class="bg-gray-100 text-gray-500 px-2 py-1 rounded-lg text-[10px] font-semibold">#${t}</span>`).join('')
+                : '<p class="text-xs text-gray-400 italic">No tags detected in video.</p>';
+            
+            document.getElementById('suggested-hashtags').innerHTML = ai.tagLab.suggestedHashtags.map(t => `
+                <span class="bg-red-50 text-red-600 px-3 py-1 rounded-lg text-xs font-bold border border-red-100 shadow-sm">#${t}</span>
+            `).join('');
+
+            // Section 4: Keyword Lab
+            document.getElementById('copy-keywords-area').value = ai.tagLab.keywordTags;
+
+            // Section 5: Grow Your Video (Suggestions)
+            const checklistArea = document.getElementById('bilingual-checklist');
+            if (ai.bilingualChecklist && ai.bilingualChecklist.length > 0) {
+                checklistArea.innerHTML = ai.bilingualChecklist.map(item => `
+                    <div class="bg-white p-6 rounded-[1.5rem] shadow-sm border border-gray-100 flex flex-col justify-between hover:shadow-md transition-shadow">
+                        <div>
+                            <p class="text-gray-800 font-bold mb-3 flex items-start leading-tight">
+                                <i class="fa-solid fa-circle-check text-green-500 mr-2 mt-1"></i> ${item.en}
+                            </p>
+                        </div>
+                        <div class="pt-3 border-t border-gray-50 italic text-gray-500 text-sm tracking-tight leading-relaxed">
+                            ${item.local}
+                        </div>
+                    </div>
+                `).join('');
+            } else {
+                checklistArea.innerHTML = `<p class="col-span-full text-center py-10 text-gray-400 italic">Analyzing deeper growth signals...</p>`;
+            }
+
+            document.getElementById('results-area').classList.remove('hidden');
+        }
+
+        function copyKeywords() {
+            const area = document.getElementById('copy-keywords-area');
+            area.select();
+            document.execCommand('copy');
+            const btn = event.currentTarget;
+            btn.innerHTML = '<i class="fa-solid fa-check"></i> Copied!';
+            setTimeout(() => { btn.innerHTML = '<i class="fa-solid fa-copy"></i> Copy All'; }, 2000);
+        }
+
+        function showError(msg) {
+            const errorMsg = document.getElementById('error-msg');
+            errorMsg.innerText = msg;
+            errorMsg.classList.remove('hidden');
+            document.getElementById('loading').classList.add('hidden');
+        }
+    </script>
+</body>
+</html>
