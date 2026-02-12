@@ -72,13 +72,7 @@
                 window.toggleAuthModal(false);
             } catch (err) {
                 console.error("Auth Error:", err);
-                if (err.code === 'auth/unauthorized-domain') {
-                    alert("This domain is not authorized in Firebase. Please add 'mgjmails.github.io' to Authorized Domains in your Firebase Console.");
-                } else if (err.code === 'auth/popup-closed-by-user') {
-                    // Ignore
-                } else {
-                    alert("Login failed: " + err.message);
-                }
+                alert("Login failed: " + err.message);
             }
         };
 
@@ -149,7 +143,7 @@
                 
                 if (data.error) {
                     if (data.error.message.includes("referer")) {
-                        throw new Error("Referer Restriction: Google Cloud is still syncing your new restrictions. Wait 2 minutes and refresh.");
+                        throw new Error(`STILL BLOCKED BY GOOGLE. \n\nYour browser is sending this referer: ${window.location.origin} \n\nPlease go to Google Console and add EXACTLY this to your key restrictions: \n\nmgjmails.github.io/*`);
                     }
                     throw new Error(data.error.message);
                 }
@@ -172,23 +166,7 @@
         };
 
         async function analyzeWithAI(video) {
-            const systemPrompt = `You are a YouTube SEO Growth Specialist. Analyze video metadata and return ONLY a valid JSON object.
-            
-            MANDATORY JSON STRUCTURE:
-            {
-                "scores": { "title": 0-10, "thumbnail": 0-10, "seo": 0-10, "overall": 0-10 },
-                "titleAnalysis": { "score": 0-10, "suggestions": ["Title 1", "Title 2", "Title 3"] },
-                "thumbnailAudit": [{ "tip": "Visual Fix", "reason": "Why" }],
-                "thumbnailConcepts": [{ "conceptName": "Idea Name", "details": "Visual details" }],
-                "tagLab": { "suggestedHashtags": ["#tag1", "#tag2"], "keywordTags": "k1, k2, k3" },
-                "bilingualChecklist": [
-                    { "en": "Step instruction in Simple English", "local": "Instruction in the video's primary language" }
-                ]
-            }
-            
-            REQUIREMENT: Provide exactly 6 bilingualChecklist items.
-            Analyze Title: ${video.snippet.title}
-            Analyze Description Snippet: ${video.snippet.description.substring(0, 300)}`;
+            const systemPrompt = `You are a YouTube SEO Growth Specialist. Analyze video metadata and return ONLY a valid JSON object. Provide exactly 6 bilingualChecklist items. Analyze Title: ${video.snippet.title}`;
 
             const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${AI_API_KEY}`, {
                 method: 'POST',
@@ -213,13 +191,13 @@
             ).join('');
 
             document.getElementById('thumb-suggestions-list').innerHTML = (ai.thumbnailAudit || []).map(s => `
-                <div class="bg-white p-3 rounded-xl border border-gray-100 shadow-sm mb-2 text-xs font-bold leading-tight flex items-center">
+                <div class="bg-white p-3 rounded-xl border border-gray-100 shadow-sm mb-2 text-xs font-bold flex items-center">
                     <i class="fa-solid fa-pen-ruler text-purple-500 mr-2"></i> ${s.tip}
                 </div>
             `).join('');
 
             document.getElementById('thumb-concepts-list').innerHTML = (ai.thumbnailConcepts || []).map(c => `
-                <div class="bg-orange-50 p-3 rounded-xl border border-orange-100 mb-2 border-l-4 border-l-orange-400 font-medium text-[10px] text-orange-900 leading-tight">
+                <div class="bg-orange-50 p-3 rounded-xl border border-orange-100 mb-2 border-l-4 border-l-orange-400 font-medium text-[10px] text-orange-900">
                     <p class="font-bold uppercase mb-1 tracking-tight">${c.conceptName}</p>
                     ${c.details}
                 </div>
@@ -228,7 +206,7 @@
             document.getElementById('copy-keywords-area').value = ai.tagLab.keywordTags || '';
             
             document.getElementById('bilingual-checklist').innerHTML = (ai.bilingualChecklist || []).map(item => `
-                <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col justify-between hover:shadow-md transition-all duration-300 transform hover:-translate-y-1">
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col justify-between hover:shadow-md transition-all">
                     <p class="font-bold text-gray-800 text-sm mb-2 leading-snug">
                         <i class="fa-solid fa-circle-check text-green-500 mr-2"></i>${item.en}
                     </p>
@@ -250,24 +228,21 @@
             });
 
             document.getElementById('results-area').classList.remove('hidden');
-            setTimeout(() => {
-                document.getElementById('results-area').scrollIntoView({ behavior: 'smooth' });
-            }, 100);
+            document.getElementById('results-area').scrollIntoView({ behavior: 'smooth' });
         }
     </script>
 </head>
 <body class="bg-[#fafafa] min-h-screen hero-gradient">
 
-    <!-- Navbar -->
     <nav class="py-4 border-b bg-white/80 sticky top-0 z-50 backdrop-blur-md">
         <div class="max-w-5xl mx-auto px-4 flex justify-between items-center">
             <div class="flex items-center space-x-2">
-                <div class="bg-red-600 p-2 rounded-lg shadow-lg shadow-red-200"><i class="fa-solid fa-chart-line text-white"></i></div>
+                <div class="bg-red-600 p-2 rounded-lg shadow-lg"><i class="fa-solid fa-chart-line text-white"></i></div>
                 <span class="font-extrabold text-xl tracking-tighter">YT Audit<span class="text-red-600">Pro</span></span>
             </div>
             
             <div id="auth-trigger-btn">
-                <button onclick="window.toggleAuthModal(true)" class="bg-gray-900 text-white px-6 py-2 rounded-full font-bold text-sm hover:bg-black transition-colors">Sign In</button>
+                <button onclick="window.toggleAuthModal(true)" class="bg-gray-900 text-white px-6 py-2 rounded-full font-bold text-sm">Sign In</button>
             </div>
 
             <div id="user-status-bar" class="hidden flex items-center space-x-4">
@@ -278,51 +253,40 @@
                         <span id="plan-badge" class="text-blue-600">Free</span>
                     </p>
                 </div>
-                <button onclick="window.logout()" class="text-gray-400 hover:text-red-600 transition-colors"><i class="fa-solid fa-right-from-bracket"></i></button>
+                <button onclick="window.logout()" class="text-gray-400 hover:text-red-600"><i class="fa-solid fa-right-from-bracket"></i></button>
             </div>
         </div>
     </nav>
 
     <main class="max-w-5xl mx-auto px-4 py-12">
-        <!-- Hero Section -->
         <div class="text-center mb-10 fade-in-up">
             <h2 class="text-5xl font-extrabold mb-4 tracking-tight leading-tight uppercase">AI Growth <span class="text-red-600">Engine</span></h2>
-            <p class="text-gray-500 text-lg max-w-2xl mx-auto">Get deep AI insights into your metadata and visuals to explode your YouTube reach.</p>
+            <p class="text-gray-500 text-lg">Detailed AI insights to explode your views.</p>
         </div>
 
-        <!-- Search Input -->
-        <div class="glass p-2 rounded-[2.5rem] shadow-2xl flex flex-col md:flex-row gap-2 mb-16 max-w-4xl mx-auto fade-in-up" style="animation-delay: 0.1s">
+        <div class="glass p-2 rounded-[2.5rem] shadow-2xl flex flex-col md:flex-row gap-2 mb-16 max-w-4xl mx-auto fade-in-up">
             <div class="flex-grow flex items-center px-6">
                 <i class="fa-brands fa-youtube text-red-600 text-xl mr-4"></i>
-                <input type="text" id="video-url" placeholder="Paste YouTube video link here..." class="w-full py-5 bg-transparent outline-none text-lg font-medium placeholder:text-gray-300">
+                <input type="text" id="video-url" placeholder="Paste YouTube link here..." class="w-full py-5 bg-transparent outline-none text-lg font-medium">
             </div>
-            <button onclick="window.performAudit()" class="bg-red-600 text-white px-10 py-5 rounded-[2.2rem] font-bold shadow-xl shadow-red-200 hover:bg-red-700 transition-all active:scale-95">Analyze Video</button>
+            <button onclick="window.performAudit()" class="bg-red-600 text-white px-10 py-5 rounded-[2.2rem] font-bold shadow-xl active:scale-95">Analyze Video</button>
         </div>
 
-        <!-- Loading State -->
         <div id="loading" class="hidden text-center py-20">
             <div class="animate-spin inline-block w-12 h-12 border-4 border-red-600 border-t-transparent rounded-full mb-6"></div>
-            <p class="font-bold text-xl text-gray-900">Scanning metadata & visuals...</p>
-            <p class="text-gray-400 text-sm italic">Drafting your blueprint (approx 8s)</p>
+            <p class="font-bold text-xl text-gray-900">Scanning visuals & metadata...</p>
         </div>
 
-        <!-- Results Area -->
-        <div id="results-area" class="hidden space-y-12 pb-20 fade-in-up">
-            
+        <div id="results-area" class="hidden space-y-12 pb-20">
             <div id="scores-grid" class="grid grid-cols-2 md:grid-cols-4 gap-4"></div>
-
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <!-- Title Clinic -->
                 <div class="glass p-8 rounded-[2.5rem]">
-                    <h3 class="font-bold text-xl mb-6 flex items-center"><i class="fa-solid fa-pen-nib text-blue-500 mr-3"></i> Title Clinic</h3>
-                    <div id="current-title-display" class="p-4 bg-gray-50 rounded-xl mb-6 border border-gray-100 text-gray-700 text-sm font-medium leading-relaxed italic"></div>
-                    <p class="text-[10px] font-black text-blue-500 uppercase tracking-widest mb-3">Optimized Alternatives</p>
+                    <h3 class="font-bold text-xl mb-6">Title Clinic</h3>
+                    <div id="current-title-display" class="p-4 bg-gray-50 rounded-xl mb-6 border text-sm font-medium italic"></div>
                     <div id="title-suggestions-list"></div>
                 </div>
-
-                <!-- Thumbnail Analysis -->
                 <div class="glass p-8 rounded-[2.5rem]">
-                    <h3 class="font-bold text-xl mb-6 flex items-center"><i class="fa-solid fa-eye text-red-500 mr-3"></i> Visual Audit</h3>
+                    <h3 class="font-bold text-xl mb-6">Visual Audit</h3>
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div class="relative">
                             <img id="vid-thumb-preview" class="rounded-2xl w-full aspect-video object-cover shadow-lg border-4 border-white">
@@ -330,24 +294,14 @@
                         </div>
                         <div id="thumb-suggestions-list"></div>
                     </div>
-                    <div id="thumb-concepts-list" class="mt-4 grid grid-cols-1 gap-2"></div>
+                    <div id="thumb-concepts-list" class="mt-4"></div>
                 </div>
             </div>
-
-            <!-- Keyword Lab -->
-            <div class="glass p-8 rounded-[2.5rem] bg-gray-900 text-white border-none shadow-xl shadow-gray-200">
-                <div class="flex items-center space-x-3 mb-4">
-                    <div class="w-8 h-8 rounded-full bg-red-600 text-white flex items-center justify-center font-bold text-sm">4</div>
-                    <h3 class="text-2xl font-extrabold text-white">Keyword Lab</h3>
-                </div>
-                <p class="text-gray-400 text-xs mb-4 uppercase tracking-widest font-bold">SEO Tag List (Copy-Paste to Studio):</p>
-                <div class="relative">
-                    <textarea id="copy-keywords-area" class="w-full h-32 bg-gray-800 border-none rounded-2xl p-6 text-sm font-mono text-gray-400 outline-none focus:ring-1 focus:ring-red-500" readonly></textarea>
-                    <button onclick="window.copyKeywords()" id="copy-btn" class="absolute top-4 right-4 bg-red-600 text-white px-6 py-2 rounded-xl text-xs font-bold hover:bg-red-500 transition-all shadow-lg">Copy All</button>
-                </div>
+            <div class="glass p-8 rounded-[2.5rem] bg-gray-900 text-white border-none shadow-xl">
+                <h3 class="text-2xl font-extrabold text-white mb-4">Keyword Lab</h3>
+                <textarea id="copy-keywords-area" class="w-full h-32 bg-gray-800 border-none rounded-2xl p-6 text-sm font-mono text-gray-400 outline-none" readonly></textarea>
+                <button onclick="window.copyKeywords()" id="copy-btn" class="mt-4 bg-red-600 text-white px-6 py-2 rounded-xl text-xs font-bold transition-all">Copy All</button>
             </div>
-
-            <!-- Grow Checklist -->
             <div class="glass p-8 rounded-[2.5rem] bg-gradient-to-br from-white to-green-50/50">
                 <h3 class="font-bold text-2xl mb-2 uppercase tracking-tight">Grow Your Video</h3>
                 <p class="text-gray-500 mb-8 font-semibold">Follow these bilingual instructions to grow your video reach</p>
@@ -356,56 +310,24 @@
         </div>
     </main>
 
-    <!-- AUTH MODAL -->
     <div id="auth-modal" class="hidden fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
         <div class="bg-white w-full max-w-md rounded-[2.5rem] p-10 relative shadow-2xl">
             <button onclick="window.toggleAuthModal(false)" class="absolute top-6 right-8 text-gray-300 hover:text-gray-900"><i class="fa-solid fa-xmark text-2xl"></i></button>
-            <h3 class="text-3xl font-extrabold mb-8 text-center tracking-tighter">Get Started</h3>
+            <h3 class="text-3xl font-extrabold mb-8 text-center">Get Started</h3>
             <div class="space-y-4">
                 <button onclick="window.handleGoogleLogin()" class="w-full py-4 border border-gray-200 rounded-2xl flex items-center justify-center space-x-3 font-bold text-gray-700 hover:bg-gray-50 transition-all">
                     <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/action/google.svg" class="w-5 h-5">
                     <span>Continue with Google</span>
                 </button>
                 <div class="text-center text-[10px] text-gray-300 font-bold uppercase py-2 tracking-widest">or email</div>
-                <input type="email" id="auth-email" placeholder="Email Address" class="w-full p-4 bg-gray-50 rounded-2xl outline-none focus:ring-2 ring-red-500">
-                <input type="password" id="auth-password" placeholder="Password" class="w-full p-4 bg-gray-50 rounded-2xl outline-none focus:ring-2 ring-red-500">
+                <input type="email" id="auth-email" placeholder="Email" class="w-full p-4 bg-gray-50 rounded-2xl outline-none">
+                <input type="password" id="auth-password" placeholder="Password" class="w-full p-4 bg-gray-50 rounded-2xl outline-none">
                 <p id="auth-error" class="hidden text-red-500 text-xs px-2 font-bold"></p>
                 <div class="grid grid-cols-2 gap-4 pt-2">
-                    <button onclick="window.handleAuth('signup')" class="bg-red-600 text-white py-4 rounded-2xl font-bold hover:bg-red-700">Sign Up</button>
-                    <button onclick="window.handleAuth('login')" class="bg-gray-900 text-white py-4 rounded-2xl font-bold hover:bg-black">Login</button>
+                    <button onclick="window.handleAuth('signup')" class="bg-red-600 text-white py-4 rounded-2xl font-bold">Sign Up</button>
+                    <button onclick="window.handleAuth('login')" class="bg-gray-900 text-white py-4 rounded-2xl font-bold">Login</button>
                 </div>
-                <button onclick="window.handleAuth('reset')" class="w-full text-center text-xs font-bold text-gray-400 hover:text-red-600 mt-2">Forgot Password?</button>
             </div>
-        </div>
-    </div>
-
-    <!-- PAYWALL -->
-    <div id="paywall-modal" class="hidden fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
-        <div class="max-w-4xl w-full grid grid-cols-1 md:grid-cols-2 gap-6 animate-in slide-in-from-bottom-8 duration-500">
-            <div class="bg-white rounded-[2.5rem] p-10 flex flex-col justify-between shadow-2xl relative overflow-hidden">
-                <div class="bg-red-600 text-white text-[10px] font-black uppercase tracking-widest px-4 py-1 absolute top-6 right-[-30px] rotate-45 w-40 text-center">Popular</div>
-                <div>
-                    <h4 class="text-2xl font-bold mb-2">Premium</h4>
-                    <p class="text-4xl font-black mb-6">₹100 <span class="text-sm font-normal text-gray-400">/ 10 Credits</span></p>
-                    <ul class="text-sm space-y-3 mb-8 text-gray-500">
-                        <li><i class="fa-solid fa-check text-green-500 mr-2"></i> 10 Complete Video Audits</li>
-                        <li><i class="fa-solid fa-check text-green-500 mr-2"></i> High-Traffic SEO Keywords</li>
-                    </ul>
-                </div>
-                <button class="w-full py-4 bg-red-600 text-white rounded-2xl font-bold hover:bg-red-700 shadow-xl shadow-red-200">Upgrade Now</button>
-            </div>
-            <div class="bg-gray-900 rounded-[2.5rem] p-10 text-white flex flex-col justify-between shadow-2xl">
-                <div>
-                    <h4 class="text-2xl font-bold mb-2">Pro</h4>
-                    <p class="text-4xl font-black mb-6">₹3000 <span class="text-sm font-normal text-gray-500">/ month</span></p>
-                    <ul class="text-sm space-y-3 mb-8 text-gray-400">
-                        <li><i class="fa-solid fa-infinity text-blue-500 mr-2"></i> Unlimited Audit Access</li>
-                        <li><i class="fa-solid fa-bolt text-blue-500 mr-2"></i> Faster AI Processing</li>
-                    </ul>
-                </div>
-                <button class="w-full py-4 bg-white text-gray-900 rounded-2xl font-bold hover:bg-gray-100 transition-colors">Go Unlimited</button>
-            </div>
-            <button onclick="window.togglePaywall(false)" class="col-span-full text-center text-gray-400 font-bold mt-4 hover:text-white transition-colors">Maybe Later</button>
         </div>
     </div>
 </body>
