@@ -24,7 +24,7 @@
         import { getFirestore, doc, getDoc, setDoc, updateDoc, increment, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // --- CONFIGURATION ---
-        const YT_API_KEY = "AIzaSyCm4_V3xrOVzXwPAqmO4pS8NR9ENVkdzK4"; 
+       const YT_API_KEY = "AIzaSyCm4_V3xrOVzXwPAqmO4pS8NR9ENVkdzK4"; 
         const AI_API_KEY = "AIzaSyAAitSgoxy7G6uAO9XXRy3BR4UFa8lCbng"; 
         
         const firebaseConfig = {
@@ -37,70 +37,35 @@
             measurementId: "G-V7VX3TWKGJ"
         };
 
-        // --- UI HELPERS ---
-        window.toggleAuthModal = (show) => {
-            const modal = document.getElementById('auth-modal');
-            if (modal) modal.classList.toggle('hidden', !show);
-        };
-        
-        window.togglePaywall = (show) => {
-            const modal = document.getElementById('paywall-modal');
-            if (modal) modal.classList.toggle('hidden', !show);
-        };
-
-        window.copyKeywords = () => {
-            const area = document.getElementById('copy-keywords-area');
-            if (area) {
-                area.select();
-                document.execCommand('copy');
-                alert("Keywords copied to clipboard!");
-            }
-        };
-
-        function showLoading(s) { 
-            const loader = document.getElementById('loading');
-            const results = document.getElementById('results-area');
-            if (loader) loader.classList.toggle('hidden', !s); 
-            if (s && results) results.classList.add('hidden'); 
-        }
-
-        // Initialize Firebase
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        // Global State
+        window.toggleAuthModal = (show) => document.getElementById('auth-modal')?.classList.toggle('hidden', !show);
+        window.togglePaywall = (show) => document.getElementById('paywall-modal')?.classList.toggle('hidden', !show);
+        window.copyKeywords = () => {
+            const area = document.getElementById('copy-keywords-area');
+            area.select();
+            document.execCommand('copy');
+            const btn = document.getElementById('copy-btn');
+            btn.innerText = "Copied!";
+            setTimeout(() => btn.innerText = "Copy All", 2000);
+        };
+
         let currentUser = null;
         let userData = null;
 
-        // --- AUTH LOGIC ---
         window.handleGoogleLogin = async () => {
             const provider = new GoogleAuthProvider();
-            // Optional: forces the account picker to show up
             provider.setCustomParameters({ prompt: 'select_account' });
-            
             try {
-                const result = await signInWithPopup(auth, provider);
-                const user = result.user;
-                
-                const userDoc = await getDoc(doc(db, "users", user.uid));
-                if (!userDoc.exists()) {
-                    await setDoc(doc(db, "users", user.uid), {
-                        email: user.email,
-                        credits: 2,
-                        plan: 'Free',
-                        createdAt: new Date()
-                    });
-                }
+                await signInWithPopup(auth, provider);
                 window.toggleAuthModal(false);
             } catch (err) {
-                console.error("Google Auth Error:", err);
                 if (err.code === 'auth/unauthorized-domain') {
-                    alert("This domain is not authorized in Firebase. Please add " + window.location.hostname + " to 'Authorized Domains' in your Firebase Console.");
-                } else if (err.code === 'auth/popup-closed-by-user') {
-                    // Do nothing, user just closed it
+                    alert("Unauthorized Domain: Add " + window.location.hostname + " to Authorized Domains in Firebase Console > Authentication > Settings.");
                 } else {
-                    alert("Sign-In Error: " + err.message);
+                    alert("Login Error: " + err.message);
                 }
             }
         };
@@ -109,27 +74,12 @@
             const email = document.getElementById('auth-email').value;
             const password = document.getElementById('auth-password').value;
             const errorEl = document.getElementById('auth-error');
-
-            if (!email || !password) {
-                errorEl.innerText = "Please enter email and password.";
-                errorEl.classList.remove('hidden');
-                return;
-            }
-
             try {
-                if (type === 'signup') {
-                    const res = await createUserWithEmailAndPassword(auth, email, password);
-                    await setDoc(doc(db, "users", res.user.uid), {
-                        email: email,
-                        credits: 2,
-                        plan: 'Free',
-                        createdAt: new Date()
-                    });
-                } else if (type === 'login') {
-                    await signInWithEmailAndPassword(auth, email, password);
-                } else if (type === 'reset') {
+                if (type === 'signup') await createUserWithEmailAndPassword(auth, email, password);
+                else if (type === 'login') await signInWithEmailAndPassword(auth, email, password);
+                else if (type === 'reset') {
                     await sendPasswordResetEmail(auth, email);
-                    alert("Password reset email sent!");
+                    alert("Password reset link sent!");
                 }
                 window.toggleAuthModal(false);
             } catch (err) {
@@ -144,161 +94,102 @@
             currentUser = user;
             const authBtn = document.getElementById('auth-trigger-btn');
             const userBar = document.getElementById('user-status-bar');
-            
             if (user) {
-                if (authBtn) authBtn.classList.add('hidden');
-                if (userBar) userBar.classList.remove('hidden');
-                document.getElementById('user-email-display').innerText = user.email;
-                
+                authBtn?.classList.add('hidden');
+                userBar?.classList.remove('hidden');
+                document.getElementById('user-email-display').innerText = user.email.toUpperCase();
                 onSnapshot(doc(db, "users", user.uid), (snapshot) => {
                     if (snapshot.exists()) {
                         userData = snapshot.data();
                         document.getElementById('credit-count').innerText = userData.plan === 'Pro' ? '∞' : (userData.credits || 0);
                         document.getElementById('plan-badge').innerText = userData.plan || 'Free';
                     } else {
-                        // Ensure doc exists for Google users
                         setDoc(doc(db, "users", user.uid), { email: user.email, credits: 2, plan: 'Free', createdAt: new Date() });
                     }
-                }, (err) => {
-                    console.error("Firestore access error:", err);
                 });
             } else {
-                if (authBtn) authBtn.classList.remove('hidden');
-                if (userBar) userBar.classList.add('hidden');
+                authBtn?.classList.remove('hidden');
+                userBar?.classList.add('hidden');
                 userData = null;
             }
         });
 
-        // --- AUDIT LOGIC ---
         window.performAudit = async () => {
-            if (!currentUser) {
-                window.toggleAuthModal(true);
-                return;
-            }
+            if (!currentUser) return window.toggleAuthModal(true);
+            if (!userData) return alert("Loading profile...");
+            if (userData.plan !== 'Pro' && (userData.credits <= 0)) return window.togglePaywall(true);
+            if (!YT_API_KEY) return alert("Please enter your YouTube API Key in the code.");
 
-            if (!userData) {
-                alert("Please wait for your profile to load...");
-                return;
-            }
+            const url = document.getElementById('video-url').value;
+            const match = url.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/);
+            if (!match) return alert("Invalid Link");
+            
+            const videoId = match[1];
+            document.getElementById('loading').classList.remove('hidden');
+            document.getElementById('results-area').classList.add('hidden');
 
-            if (userData.plan !== 'Pro' && (userData.credits === undefined || userData.credits <= 0)) {
-                window.togglePaywall(true);
-                return;
-            }
-
-            const urlInput = document.getElementById('video-url').value;
-            const videoId = extractVideoId(urlInput);
-            if (!videoId) return alert("Please enter a valid YouTube URL");
-
-            showLoading(true);
             try {
-                const metaRes = await fetch(`https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails&id=${videoId}&key=${YT_API_KEY}`);
-                const meta = await metaRes.json();
+                const res = await fetch(`https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails&id=${videoId}&key=${YT_API_KEY}`);
+                const data = await res.json();
                 
-                if (meta.error) throw new Error(meta.error.message);
-                if (!meta.items?.length) throw new Error("Video not found.");
-
-                const auditData = {
-                    title: meta.items[0].snippet.title,
-                    description: meta.items[0].snippet.description,
-                    tags: meta.items[0].snippet.tags || [],
-                    thumbnail: meta.items[0].snippet.thumbnails.high.url
-                };
-
-                const analysis = await analyzeWithAI(auditData);
-                
-                if (userData.plan !== 'Pro') {
-                    await updateDoc(doc(db, "users", currentUser.uid), {
-                        credits: increment(-1)
-                    });
+                if (data.error) {
+                    if (data.error.message.includes("referer")) {
+                        throw new Error("Referer Blocked: Go to Google Cloud Console and add '" + window.location.hostname + "/*' to your API key website restrictions.");
+                    }
+                    throw new Error(data.error.message);
                 }
+                if (!data.items?.length) throw new Error("Video not found or is private.");
 
-                renderResults(auditData, analysis);
+                const analysis = await analyzeWithAI(data.items[0]);
+                if (userData.plan !== 'Pro') await updateDoc(doc(db, "users", currentUser.uid), { credits: increment(-1) });
+                renderResults(data.items[0], analysis);
             } catch (err) {
-                console.error(err);
-                alert("Audit failed: " + err.message);
+                alert(err.message);
             } finally {
-                showLoading(false);
+                document.getElementById('loading').classList.add('hidden');
             }
         };
 
-        function extractVideoId(url) {
-            const match = url.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/);
-            return match ? match[1] : null;
-        }
-
-        async function analyzeWithAI(data) {
-            const systemPrompt = `You are a YouTube SEO Expert. Analyze metadata and return JSON:
+        async function analyzeWithAI(video) {
+            const systemPrompt = `You are a YouTube SEO Expert. Analyze the title and return ONLY a JSON object:
             {
                 "scores": { "title": 0-10, "thumbnail": 0-10, "seo": 0-10, "overall": 0-10 },
-                "titleAnalysis": { "score": 0-10, "suggestions": ["Alt Title 1", "Alt Title 2", "Alt Title 3"] },
-                "thumbnailAudit": [{ "tip": "Improvement", "reason": "Why" }],
-                "thumbnailConcepts": [{ "conceptName": "New Concept", "details": "Visual plan" }],
+                "titleAnalysis": { "score": 0-10, "suggestions": ["Alt 1", "Alt 2", "Alt 3"] },
+                "thumbnailAudit": [{ "tip": "Visual Tip", "reason": "Why" }],
+                "thumbnailConcepts": [{ "conceptName": "Idea", "details": "Plan" }],
                 "tagLab": { "suggestedHashtags": ["#tag1"], "keywordTags": "keyword1, keyword2" },
-                "bilingualChecklist": [
-                    { "en": "Step instruction", "local": "Local Language Instruction" }
-                ]
+                "bilingualChecklist": [{ "en": "Step", "local": "Native" }]
             }
-            Analyze Title: ${data.title}, Desc: ${data.description.substring(0,300)}`;
+            Return at least 6 checklist items. Video Title: ${video.snippet.title}`;
 
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${AI_API_KEY}`;
-            const res = await fetch(url, {
+            const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${AI_API_KEY}`, {
                 method: 'POST',
                 body: JSON.stringify({
-                    contents: [{ parts: [{ text: "Analyze video metadata and return full JSON response." }] }],
+                    contents: [{ parts: [{ text: "Audit video." }] }],
                     systemInstruction: { parts: [{ text: systemPrompt }] },
                     generationConfig: { responseMimeType: "application/json" }
                 })
             });
             const json = await res.json();
-            if (json.error) throw new Error(json.error.message);
             return JSON.parse(json.candidates[0].content.parts[0].text);
         }
 
         function renderResults(meta, ai) {
-            document.getElementById('vid-thumb-preview').src = meta.thumbnail;
+            document.getElementById('vid-thumb-preview').src = meta.snippet.thumbnails.high.url;
             document.getElementById('thumb-score-mini').innerText = `${ai.scores.thumbnail}/10`;
-            document.getElementById('current-title-display').innerText = meta.title;
+            document.getElementById('current-title-display').innerText = meta.snippet.title;
             
-            document.getElementById('title-suggestions-list').innerHTML = (ai.titleAnalysis.suggestions || []).map(t => 
-                `<div class="bg-blue-50 p-3 rounded-lg font-bold text-blue-900 text-sm shadow-sm mb-2">${t}</div>`
-            ).join('');
-
-            document.getElementById('thumb-suggestions-list').innerHTML = (ai.thumbnailAudit || []).map(s => `
-                <div class="bg-white p-3 rounded-xl border border-gray-100 shadow-sm mb-2">
-                    <p class="font-bold text-gray-800 text-xs leading-tight"><i class="fa-solid fa-pen-ruler text-purple-500 mr-2"></i> ${s.tip}</p>
-                    <p class="text-[10px] text-gray-400 mt-1 leading-tight">${s.reason}</p>
-                </div>
-            `).join('');
-
-            document.getElementById('thumb-concepts-list').innerHTML = (ai.thumbnailConcepts || []).map(c => `
-                <div class="bg-orange-50 p-3 rounded-xl border border-orange-100 shadow-sm border-l-4 border-l-orange-400 mb-2">
-                    <p class="font-bold text-orange-900 text-[10px] uppercase mb-1">${c.conceptName}</p>
-                    <p class="text-[10px] text-orange-700 leading-tight">${c.details}</p>
-                </div>
-            `).join('');
-
+            document.getElementById('title-suggestions-list').innerHTML = ai.titleAnalysis.suggestions.map(t => `<div class="bg-blue-50 p-3 rounded-lg font-bold text-blue-900 text-sm mb-2 border border-blue-100">${t}</div>`).join('');
+            document.getElementById('thumb-suggestions-list').innerHTML = ai.thumbnailAudit.map(s => `<div class="bg-white p-3 rounded-xl border border-gray-100 shadow-sm mb-2 text-xs font-bold"><i class="fa-solid fa-pen-ruler text-purple-500 mr-2"></i> ${s.tip}</div>`).join('');
+            document.getElementById('thumb-concepts-list').innerHTML = ai.thumbnailConcepts.map(c => `<div class="bg-orange-50 p-3 rounded-xl border border-orange-100 mb-2 border-l-4 border-l-orange-400 font-medium text-[10px] text-orange-900"><p class="font-bold uppercase mb-1">${c.conceptName}</p>${c.details}</div>`).join('');
             document.getElementById('copy-keywords-area').value = ai.tagLab.keywordTags || '';
-            
-            document.getElementById('bilingual-checklist').innerHTML = (ai.bilingualChecklist || []).map(item => `
-                <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col justify-between hover:shadow-md transition-shadow">
-                    <p class="font-bold text-gray-800 text-sm mb-2 leading-tight"><i class="fa-solid fa-circle-check text-green-500 mr-2"></i>${item.en}</p>
-                    <div class="pt-3 border-t border-gray-50 italic text-gray-500 text-xs tracking-tight">${item.local}</div>
-                </div>
-            `).join('');
+            document.getElementById('bilingual-checklist').innerHTML = ai.bilingualChecklist.map(item => `<div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100"><p class="font-bold text-gray-800 text-sm mb-2"><i class="fa-solid fa-circle-check text-green-500 mr-2"></i>${item.en}</p><div class="pt-3 border-t border-gray-50 italic text-gray-500 text-xs">${item.local}</div></div>`).join('');
 
-            const scoresGrid = document.getElementById('scores-grid');
-            scoresGrid.innerHTML = '';
-            const scoreLabels = { title: 'Title Score', thumbnail: 'Visual Grade', seo: 'SEO Strength', overall: 'Audit Grade' };
-            Object.entries(ai.scores).forEach(([key, val]) => {
-                const color = val > 7 ? 'text-green-600' : val > 4 ? 'text-orange-500' : 'text-red-600';
-                const bg = val > 7 ? 'bg-green-50' : val > 4 ? 'bg-orange-50' : 'bg-red-50';
-                scoresGrid.innerHTML += `
-                    <div class="${bg} rounded-2xl p-6 text-center border border-white shadow-sm transition-transform hover:scale-105">
-                        <div class="text-3xl font-black ${color} mb-1">${val}/10</div>
-                        <div class="text-[10px] uppercase font-extrabold text-gray-400 tracking-widest">${scoreLabels[key] || key}</div>
-                    </div>
-                `;
+            const scoreGrid = document.getElementById('scores-grid');
+            scoreGrid.innerHTML = '';
+            const labels = { title: 'Title', thumbnail: 'Visual', seo: 'SEO', overall: 'Audit' };
+            Object.entries(ai.scores).forEach(([k, v]) => {
+                scoreGrid.innerHTML += `<div class="bg-white rounded-2xl p-6 text-center border shadow-sm"><div class="text-3xl font-black text-red-600 mb-1">${v}/10</div><div class="text-[10px] uppercase font-bold text-gray-400 tracking-widest">${labels[k] || k}</div></div>`;
             });
 
             document.getElementById('results-area').classList.remove('hidden');
@@ -308,156 +199,67 @@
 </head>
 <body class="bg-[#fafafa] min-h-screen hero-gradient">
 
-    <!-- Navbar -->
-    <nav class="py-4 border-b border-gray-100 bg-white/80 sticky top-0 z-50 backdrop-blur-md">
+    <nav class="py-4 border-b bg-white/80 sticky top-0 z-50 backdrop-blur-md">
         <div class="max-w-5xl mx-auto px-4 flex justify-between items-center">
             <div class="flex items-center space-x-2">
-                <div class="bg-red-600 p-2 rounded-lg shadow-lg shadow-red-100"><i class="fa-solid fa-chart-line text-white"></i></div>
-                <span class="font-extrabold text-xl">YT Audit<span class="text-red-600">Pro</span></span>
+                <div class="bg-red-600 p-2 rounded-lg shadow-lg"><i class="fa-solid fa-chart-line text-white"></i></div>
+                <span class="font-extrabold text-xl tracking-tighter">YT Audit<span class="text-red-600">Pro</span></span>
             </div>
-            
-            <div id="auth-trigger-btn">
-                <button onclick="window.toggleAuthModal(true)" class="bg-gray-900 text-white px-6 py-2 rounded-full font-bold text-sm hover:bg-black transition-colors">Sign In</button>
-            </div>
-
+            <div id="auth-trigger-btn"><button onclick="window.toggleAuthModal(true)" class="bg-gray-900 text-white px-6 py-2 rounded-full font-bold text-sm">Sign In</button></div>
             <div id="user-status-bar" class="hidden flex items-center space-x-4">
-                <div class="text-right">
-                    <p id="user-email-display" class="text-[10px] font-bold text-gray-400 uppercase tracking-widest"></p>
-                    <p class="text-xs font-bold">
-                        <span id="credit-count" class="text-red-600">0</span> Credits • 
-                        <span id="plan-badge" class="text-blue-600">Free</span>
-                    </p>
-                </div>
-                <button onclick="window.logout()" class="text-gray-400 hover:text-red-600 transition-colors"><i class="fa-solid fa-right-from-bracket"></i></button>
+                <div class="text-right"><p id="user-email-display" class="text-[10px] font-bold text-gray-400 tracking-widest"></p><p class="text-xs font-bold"><span id="credit-count" class="text-red-600">0</span> Credits • <span id="plan-badge" class="text-blue-600">Free</span></p></div>
+                <button onclick="window.logout()" class="text-gray-400 hover:text-red-600"><i class="fa-solid fa-right-from-bracket"></i></button>
             </div>
         </div>
     </nav>
 
     <main class="max-w-5xl mx-auto px-4 py-12">
-        <!-- Hero -->
         <div class="text-center mb-10">
-            <h2 class="text-5xl font-extrabold mb-4 tracking-tight leading-tight">AI Video <span class="text-red-600">Growth Engine</span></h2>
+            <h2 class="text-5xl font-extrabold mb-4 tracking-tight leading-tight uppercase">AI Growth <span class="text-red-600">Engine</span></h2>
             <p class="text-gray-500 text-lg">Detailed AI insights to explode your views.</p>
         </div>
 
-        <!-- Search Bar -->
         <div class="glass p-2 rounded-[2.5rem] shadow-2xl flex flex-col md:flex-row gap-2 mb-16 max-w-4xl mx-auto">
-            <div class="flex-grow flex items-center px-6">
-                <i class="fa-brands fa-youtube text-red-600 text-xl mr-4"></i>
-                <input type="text" id="video-url" placeholder="Paste YouTube link here..." class="w-full py-5 bg-transparent outline-none text-lg font-medium placeholder:text-gray-300">
-            </div>
-            <button onclick="window.performAudit()" class="bg-red-600 text-white px-10 py-5 rounded-[2.2rem] font-bold shadow-xl shadow-red-200 hover:bg-red-700 transition-all active:scale-95">Analyze Video</button>
+            <div class="flex-grow flex items-center px-6"><i class="fa-brands fa-youtube text-red-600 text-xl mr-4"></i><input type="text" id="video-url" placeholder="Paste YouTube link here..." class="w-full py-5 bg-transparent outline-none text-lg font-medium"></div>
+            <button onclick="window.performAudit()" class="bg-red-600 text-white px-10 py-5 rounded-[2.2rem] font-bold shadow-xl active:scale-95">Analyze Video</button>
         </div>
 
-        <!-- Loading -->
-        <div id="loading" class="hidden text-center py-20">
-            <div class="animate-spin inline-block w-12 h-12 border-4 border-red-600 border-t-transparent rounded-full mb-6"></div>
-            <p class="font-bold text-xl text-gray-900">Scanning metadata...</p>
-            <p class="text-gray-400 text-sm">Our AI is drafting your growth blueprint</p>
-        </div>
+        <div id="loading" class="hidden text-center py-20"><div class="animate-spin inline-block w-12 h-12 border-4 border-red-600 border-t-transparent rounded-full mb-6"></div><p class="font-bold text-xl">Auditing visuals and SEO data...</p></div>
 
-        <!-- Results -->
-        <div id="results-area" class="hidden space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
+        <div id="results-area" class="hidden space-y-12 pb-20">
             <div id="scores-grid" class="grid grid-cols-2 md:grid-cols-4 gap-4"></div>
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <div class="glass p-8 rounded-[2.5rem]">
-                    <h3 class="font-bold text-xl mb-6 flex items-center"><i class="fa-solid fa-pen-nib text-blue-500 mr-3"></i> Title Clinic</h3>
-                    <div id="current-title-display" class="p-4 bg-gray-50 rounded-xl mb-6 border border-gray-100 text-gray-700 text-sm font-medium"></div>
-                    <p class="text-[10px] font-black text-blue-500 uppercase tracking-widest mb-3">Suggested Alternatives</p>
-                    <div id="title-suggestions-list"></div>
-                </div>
-                <div class="glass p-8 rounded-[2.5rem]">
-                    <h3 class="font-bold text-xl mb-6 flex items-center"><i class="fa-solid fa-eye text-red-500 mr-3"></i> Visual Audit</h3>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div class="relative">
-                            <img id="vid-thumb-preview" class="rounded-2xl w-full shadow-lg aspect-video object-cover">
-                            <div id="thumb-score-mini" class="absolute -bottom-2 -right-2 bg-red-600 text-white font-black px-3 py-1 rounded-lg text-sm shadow-lg"></div>
-                        </div>
-                        <div id="thumb-suggestions-list"></div>
-                    </div>
-                    <div class="mt-6 pt-6 border-t border-gray-50">
-                        <p class="text-[10px] font-black text-orange-500 uppercase tracking-widest mb-3">AI Visual Concepts</p>
-                        <div id="thumb-concepts-list" class="grid grid-cols-1 gap-2"></div>
-                    </div>
-                </div>
+                <div class="glass p-8 rounded-[2.5rem]"><h3 class="font-bold text-xl mb-6">Title Clinic</h3><div id="current-title-display" class="p-4 bg-gray-50 rounded-xl mb-6 border text-sm font-medium text-gray-600"></div><div id="title-suggestions-list"></div></div>
+                <div class="glass p-8 rounded-[2.5rem]"><h3 class="font-bold text-xl mb-6">Visual Audit</h3><div class="grid grid-cols-1 sm:grid-cols-2 gap-4"><div class="relative"><img id="vid-thumb-preview" class="rounded-2xl w-full aspect-video object-cover shadow-lg border-4 border-white"><div id="thumb-score-mini" class="absolute -bottom-2 -right-2 bg-red-600 text-white font-black px-3 py-1 rounded-lg text-sm shadow-lg"></div></div><div id="thumb-suggestions-list"></div></div><div id="thumb-concepts-list" class="mt-4"></div></div>
             </div>
-            <div class="glass p-8 rounded-[2.5rem] bg-gray-900 text-white border-none shadow-xl shadow-gray-200">
-                <div class="flex items-center space-x-3 mb-4">
-                    <div class="w-8 h-8 rounded-full bg-red-600 text-white flex items-center justify-center font-bold text-sm">4</div>
-                    <h3 class="text-2xl font-extrabold text-white">Keyword Lab</h3>
-                </div>
-                <p class="text-gray-400 text-sm mb-6">SEO tags optimized for search. Paste these into your YouTube Studio tags box.</p>
-                <div class="relative">
-                    <textarea id="copy-keywords-area" class="w-full h-32 bg-gray-800/50 rounded-2xl p-6 text-sm font-mono text-gray-400 border border-gray-700 outline-none focus:ring-1 focus:ring-red-500" readonly></textarea>
-                    <button onclick="window.copyKeywords()" class="absolute top-4 right-4 bg-red-600 text-white px-5 py-2 rounded-xl text-xs font-bold hover:bg-red-500 transition-all shadow-lg">Copy All</button>
-                </div>
+            <div class="glass p-8 rounded-[2.5rem] bg-gray-900 text-white border-none shadow-xl">
+                <div class="flex items-center space-x-3 mb-4"><div class="w-8 h-8 rounded-full bg-red-600 text-white flex items-center justify-center font-bold text-sm">4</div><h3 class="text-2xl font-extrabold text-white">Keyword Lab</h3></div>
+                <textarea id="copy-keywords-area" class="w-full h-32 bg-gray-800 border-none rounded-xl p-6 text-sm font-mono text-gray-400" readonly></textarea>
+                <button onclick="window.copyKeywords()" id="copy-btn" class="mt-4 bg-red-600 text-white px-8 py-3 rounded-xl text-xs font-bold transition-all">Copy All</button>
             </div>
-            <div class="glass p-8 rounded-[2.5rem] bg-gradient-to-br from-white to-green-50/40">
-                <h3 class="font-bold text-2xl mb-2">Grow Your Video</h3>
-                <p class="text-gray-500 mb-8 font-semibold">Follow these instructions to grow your video and get more views</p>
-                <div id="bilingual-checklist" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
-            </div>
+            <div class="glass p-8 rounded-[2.5rem] bg-gradient-to-br from-white to-green-50/50"><h3 class="font-bold text-2xl mb-2 uppercase tracking-tight">Grow Your Video</h3><p class="text-gray-500 mb-8 font-semibold">Follow these instructions to grow your video more and get more views</p><div id="bilingual-checklist" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div></div>
         </div>
     </main>
 
-    <!-- AUTH MODAL -->
+    <!-- Modals -->
     <div id="auth-modal" class="hidden fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
         <div class="bg-white w-full max-w-md rounded-[2.5rem] p-10 relative shadow-2xl animate-in zoom-in duration-300">
             <button onclick="window.toggleAuthModal(false)" class="absolute top-6 right-8 text-gray-300 hover:text-gray-900"><i class="fa-solid fa-xmark text-2xl"></i></button>
-            <h3 class="text-3xl font-extrabold mb-2 text-center">Get Started</h3>
-            <p class="text-gray-400 text-sm mb-6 text-center">Unlock your 2 free video audits.</p>
-            
+            <h3 class="text-3xl font-extrabold mb-8 text-center tracking-tighter">Welcome</h3>
             <div class="space-y-4">
-                <button onclick="window.handleGoogleLogin()" class="w-full py-4 border border-gray-200 rounded-2xl flex items-center justify-center space-x-3 font-bold text-gray-700 hover:bg-gray-50 transition-all">
-                    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/action/google.svg" class="w-5 h-5">
-                    <span>Sign in with Google</span>
-                </button>
-                <div class="relative py-2 flex items-center">
-                    <div class="flex-grow border-t border-gray-100"></div>
-                    <span class="px-3 text-xs text-gray-300 font-bold uppercase tracking-widest">or email</span>
-                    <div class="flex-grow border-t border-gray-100"></div>
-                </div>
-                <input type="email" id="auth-email" placeholder="Email Address" class="w-full p-4 bg-gray-50 rounded-2xl outline-none focus:ring-2 ring-red-500">
-                <input type="password" id="auth-password" placeholder="Password" class="w-full p-4 bg-gray-50 rounded-2xl outline-none focus:ring-2 ring-red-500">
-                <p id="auth-error" class="hidden text-red-500 text-xs font-bold px-2"></p>
-                <div class="grid grid-cols-2 gap-4 pt-4">
-                    <button onclick="window.handleAuth('signup')" class="bg-red-600 text-white py-4 rounded-2xl font-bold hover:bg-red-700">Sign Up</button>
-                    <button onclick="window.handleAuth('login')" class="bg-gray-900 text-white py-4 rounded-2xl font-bold hover:bg-black">Login</button>
-                </div>
-                <button onclick="window.handleAuth('reset')" class="w-full text-center text-xs font-bold text-gray-400 hover:text-red-600 pt-2">Forgot Password?</button>
+                <button onclick="window.handleGoogleLogin()" class="w-full py-4 border rounded-2xl flex items-center justify-center space-x-3 font-bold hover:bg-gray-50 transition-all"><img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/action/google.svg" class="w-5 h-5"><span>Sign in with Google</span></button>
+                <div class="text-center text-[10px] text-gray-300 font-bold uppercase py-2 tracking-widest">or email</div>
+                <input type="email" id="auth-email" placeholder="Email Address" class="w-full p-4 bg-gray-50 rounded-2xl outline-none"><input type="password" id="auth-password" placeholder="Password" class="w-full p-4 bg-gray-50 rounded-2xl outline-none">
+                <div class="grid grid-cols-2 gap-4"><button onclick="window.handleAuth('signup')" class="bg-red-600 text-white py-4 rounded-2xl font-bold">Sign Up</button><button onclick="window.handleAuth('login')" class="bg-gray-900 text-white py-4 rounded-2xl font-bold">Login</button></div>
             </div>
         </div>
     </div>
 
-    <!-- PAYWALL MODAL -->
     <div id="paywall-modal" class="hidden fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
         <div class="max-w-4xl w-full grid grid-cols-1 md:grid-cols-2 gap-6 animate-in slide-in-from-bottom-8">
-            <div class="bg-white rounded-[2.5rem] p-10 shadow-2xl relative overflow-hidden flex flex-col justify-between">
-                <div class="bg-red-600 text-white text-[10px] font-black uppercase tracking-widest px-4 py-1 absolute top-6 right-[-30px] rotate-45 w-40 text-center">Popular</div>
-                <div>
-                    <h4 class="text-2xl font-bold mb-2">Premium</h4>
-                    <p class="text-4xl font-black mb-6">₹100 <span class="text-sm font-normal text-gray-400">/ 10 Credits</span></p>
-                    <ul class="space-y-3 mb-10 text-sm text-gray-600">
-                        <li><i class="fa-solid fa-circle-check text-green-500 mr-2"></i> 10 Comprehensive Audits</li>
-                        <li><i class="fa-solid fa-circle-check text-green-500 mr-2"></i> Advanced Keyword Research</li>
-                        <li><i class="fa-solid fa-circle-check text-green-500 mr-2"></i> Custom Visual Strategies</li>
-                    </ul>
-                </div>
-                <button class="w-full py-4 bg-red-600 text-white rounded-2xl font-bold hover:bg-red-700 shadow-xl shadow-red-200">Upgrade Now</button>
-            </div>
-            <div class="bg-gray-900 rounded-[2.5rem] p-10 shadow-2xl text-white flex flex-col justify-between">
-                <div>
-                    <h4 class="text-2xl font-bold mb-2">Pro</h4>
-                    <p class="text-4xl font-black mb-6">₹3000 <span class="text-sm font-normal text-gray-500">/ month</span></p>
-                    <ul class="space-y-3 mb-10 text-sm text-gray-400">
-                        <li><i class="fa-solid fa-infinity text-blue-500 mr-2"></i> Unlimited Analysis Always</li>
-                        <li><i class="fa-solid fa-bolt text-blue-500 mr-2"></i> Priority AI Server Access</li>
-                        <li><i class="fa-solid fa-headset text-blue-500 mr-2"></i> 24/7 Priority Support</li>
-                    </ul>
-                </div>
-                <button class="w-full py-4 bg-white text-gray-900 rounded-2xl font-bold hover:bg-gray-100 transition-colors">Go Unlimited</button>
-            </div>
-            <button onclick="window.togglePaywall(false)" class="col-span-full text-center text-gray-400 font-bold hover:text-white mt-4">Close Pricing</button>
+            <div class="bg-white rounded-[2.5rem] p-10 flex flex-col justify-between shadow-2xl"><div><h4 class="text-2xl font-bold mb-2">Premium</h4><p class="text-4xl font-black mb-6">₹100 <span class="text-sm font-normal text-gray-400">/ 10 Credits</span></p></div><button class="w-full py-4 bg-red-600 text-white rounded-2xl font-bold">Upgrade Now</button></div>
+            <div class="bg-gray-900 rounded-[2.5rem] p-10 text-white flex flex-col justify-between shadow-2xl"><div><h4 class="text-2xl font-bold mb-2">Pro</h4><p class="text-4xl font-black mb-6">₹3000 <span class="text-sm font-normal text-gray-500">/ month</span></p></div><button class="w-full py-4 bg-white text-gray-900 rounded-2xl font-bold transition-colors">Go Unlimited</button></div>
+            <button onclick="window.togglePaywall(false)" class="col-span-full text-center text-gray-400 font-bold mt-4">Close Pricing</button>
         </div>
     </div>
 </body>
